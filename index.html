@@ -422,11 +422,51 @@ body.cheat .corner .icbtn > span { background: rgba(42,27,107,.2); }
 .icbtn:focus-visible { outline-offset: 0; }
 .toggle:focus-visible { outline-offset: 2px; border-radius: 8px; }
 
+/* Обучение: сверху шаг и «Пропустить обучение»; тренер подсвечивает нужное действие, остальное приглушено */
+.screen.tut { position: relative; padding-top: max(58px, calc(env(safe-area-inset-top) + 50px)); }
+.tutbar { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); height: 44px; z-index: 30;
+  display: flex; align-items: center; gap: 6px; }
+.tstep { background: var(--shot); color: var(--ink); border-radius: 999px; padding: 5px 9px; font-weight: 900; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tskip { height: 44px; display: flex; align-items: center; }
+.tskip span { background: rgba(255,255,255,.18); border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: 13px; transition: transform 80ms, background 120ms; }
+.tskip:active span { transform: scale(.95); }
+.hint.coach { cursor: default; }
+.coached .tile:not(.lit):not(.dead), .coached .mode:not(.lit) { opacity: .45; }
+/* Кнопки внизу, которые сейчас не нужны, — как выключенные: прозрачность на жёлтом давала грязный цвет */
+.coached .actions .btn:not(.lit) { background: rgba(255,255,255,.18); color: var(--on-bg-3); box-shadow: none; }
+.coached .lit { position: relative; }
+.coached .lit::before { content: ''; position: absolute; inset: -6px; border-radius: 20px; border: 3px solid var(--shot); pointer-events: none; animation: litring 1.1s ease-in-out infinite; }
+.disc.lit::after { content: ''; position: absolute; inset: -9px; border-radius: 50%; border: 3px solid var(--shot); pointer-events: none; animation: litring 1.1s ease-in-out infinite; }
+@keyframes litring { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .3; transform: scale(1.05) } }
+/* Ход манекена, который показывает тренер: красный пунктир — куда шагнёт, красная линия — куда выстрелит */
+.m.opghost::before { content: ''; width: 74%; height: 74%; border-radius: 50%; background: rgba(255,107,107,.16); border: 3px dashed var(--op); box-sizing: border-box; }
+.shotline.op.v { border-left-color: var(--op); }
+.shotline.op.h { border-top-color: var(--op); }
+/* Вход в обучение в лобби: кнопка, а при первом заходе — плашка с крестиком */
+.learnbtn { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 6px; border-radius: 999px;
+  background: rgba(255,255,255,.16); font-weight: 800; font-size: 15px; transition: transform 80ms, background 120ms; }
+.learnbtn i { width: 32px; height: 32px; border-radius: 50%; background: var(--shot); color: var(--ink); display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; }
+.learnbtn:active { transform: scale(.97); }
+.tbanner { display: flex; align-items: center; gap: 4px; background: #fff; color: var(--ink); border-radius: 18px; padding: 4px 4px 4px 14px;
+  box-shadow: 0 4px 0 var(--bg-deep); animation: pop-in 250ms var(--spring); }
+.tbanner .tbgo { flex: 1; min-height: 48px; text-align: left; font-size: 15px; font-weight: 600; line-height: 1.3; }
+.tbanner .tbgo b { color: var(--bg); font-weight: 900; }
+.tbanner .icbtn > span { background: var(--cell); color: var(--ink); font-size: 15px; }
+/* Строка настроек со стрелкой вместо переключателя */
+.toggle .arr { flex: none; font-size: 20px; font-weight: 900; color: var(--bg); }
+.toggle.go:disabled { color: var(--muted); }
+.toggle.go:disabled .arr { opacity: .35; }
+/* Конец обучения */
+.tutend .rcard p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--ink); }
+.actions.stack { flex-direction: column; }
+.actions.stack .btn { flex: 0 0 60px; width: 100%; }
+
 /* Меньше движения (настройка, по умолчанию как в системе): без тряски, покачиваний, пульса и замедления;
    трассер и надписи остаются */
 body.reduced .chip, body.reduced .disc.danger, body.reduced .disc.swapflick, body.reduced .disc .core.next,
 body.reduced .board-wrap.shaking, body.reduced .dot, body.reduced .disc .pbadge, body.reduced .m.ghost::before,
-body.reduced .sheet, body.reduced .toast, body.reduced .hint { animation: none !important; }
+body.reduced .sheet, body.reduced .toast, body.reduced .hint, body.reduced .tbanner,
+body.reduced .coached .lit::before, body.reduced .disc.lit::after { animation: none !important; }
 body.reduced .slowpill { display: none; }
 body.reduced .btn.ready.urge { animation: none; background: var(--fire); color: #fff; box-shadow: 0 5px 0 var(--fire-deep); }
 
@@ -446,6 +486,8 @@ body.reduced .btn.ready.urge { animation: none; background: var(--fire); color: 
   .textbtn:hover:not(:disabled) { color: #fff; }
   .card .textbtn:hover:not(:disabled) { color: var(--ink); } /* на белой карточке белый текст пропадал */
   .icbtn:hover > span { background: rgba(255,255,255,.3); }
+  .learnbtn:hover, .tskip:hover span { background: rgba(255,255,255,.26); }
+  .tbanner .tbgo:hover b { text-decoration: underline; text-underline-offset: 3px; }
   .sheet .icbtn:hover > span { background: #E2D9FF; }
   .btn.soft:hover { filter: brightness(.98); }
 }
@@ -456,6 +498,8 @@ body.reduced .btn.ready.urge { animation: none; background: var(--fire); color: 
   #app { max-width: 1160px; display: flex; flex-direction: column; justify-content: center; }
   .screen, .screen.hdr { padding: 64px 48px 40px; }
   .corner { top: 16px; right: 20px; }
+  .screen.tut { padding-top: 64px; }
+  .tutbar { top: 12px; left: 44px; }
   .screen.duo { min-height: 0; }
   .screen:not(.duo):not(.lobby):not(.split) { max-width: 500px; margin: 0 auto; }
   .desk { display: block; }
@@ -550,11 +594,12 @@ function saveSettings() {
 applySettings();
 
 // Прогресс на устройстве: сколько партий начато (подсказки 1-го раунда — только в первых двух,
-// экран входа гостя — только тому, кто ещё не играл) и какие разовые подсказки уже показаны.
+// экран входа гостя — только тому, кто ещё не играл), пройдено ли обучение и какие разовые подсказки уже показаны.
 const PROGRESS_KEY = 'dv-progress';
-const progress = { games: 0, tips: {} };
+const progress = { games: 0, tutorial: false, tips: {} };
 try { Object.assign(progress, JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}); } catch { /* нет хранилища */ }
 if (!Number.isInteger(progress.games)) progress.games = 0;
+progress.tutorial = progress.tutorial === true;
 if (!progress.tips || typeof progress.tips !== 'object') progress.tips = {};
 function saveProgress() {
   try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch { /* нет хранилища */ }
@@ -583,6 +628,11 @@ const ARROW = { up: '↑', down: '↓', left: '←', right: '→' };
 const WORD = { up: 'вверх', down: 'вниз', left: 'влево', right: 'вправо' };
 const FLIP = { up: 'down', down: 'up', left: 'right', right: 'left' };
 const NAME = { host: 'Игрок 1', guest: 'Игрок 2' };
+// Как называть соперника в подписях: по сети — «соперник», в обучении — «манекен».
+const RIVAL = { nom: 'соперник', gen: 'соперника' };
+const DUMMY = { nom: 'манекен', gen: 'манекена' };
+let OPP = RIVAL;
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
 
 // Поворот поля: гость смотрит на доску, повёрнутую на 180°.
 const toView = (viewer, r, c) => (viewer === 'guest' ? { r: 4 - r, c: 4 - c } : { r, c });
@@ -688,7 +738,7 @@ function dragToClose(sheet) {
 // Пока идёт партия или открыта шторка, над страницей лежит одна запись-ловушка (адрес тот же, ?room= на месте).
 // «Назад» снимает её: закрываем шторку или спрашиваем «Выйти из партии?», и ловушка ставится снова.
 // Вне партии ловушки нет, и «Назад» уходит со страницы как обычно.
-let playing = null; // 'net' | 'hot' | null — идёт партия
+let playing = null; // 'net' | 'hot' | 'tut' | null — идёт партия или обучение
 const nav = { trapped: false, skip: 0, leaving: false };
 if (history.state?.dvTrap) history.replaceState(null, ''); // страницу перезагрузили на записи-ловушке
 function syncTrap() {
@@ -724,12 +774,13 @@ addEventListener('beforeunload', (ev) => {
   ev.returnValue = '';
 });
 
-// «Выйти из партии?»: по сети соперник получит победу (как при кнопке выхода), на одном экране — просто в меню.
+// «Выйти из партии?»: по сети соперник получит победу (как при кнопке выхода), на одном экране и из обучения — просто в меню.
 function askLeave() {
   const net = playing === 'net';
-  const sheet = openPanel('confirm', `<div class="sh-head" data-drag><b>Выйти из партии?</b></div>
-    ${net ? '<p>Соперник получит победу.</p>' : ''}
-    <div class="actions"><button class="btn soft" id="quit">Выйти</button><button class="btn main" id="stay" data-focus>Остаться</button></div>`, { label: 'Выйти из партии?' });
+  const title = playing === 'tut' ? 'Выйти из обучения?' : 'Выйти из партии?';
+  const sheet = openPanel('confirm', `<div class="sh-head" data-drag><b>${title}</b></div>
+    ${net ? '<p>Соперник получит победу.</p>' : playing === 'tut' ? '<p>Пройти его можно в любой момент из настроек.</p>' : ''}
+    <div class="actions"><button class="btn soft" id="quit">Выйти</button><button class="btn main" id="stay" data-focus>Остаться</button></div>`, { label: title });
   sheet.querySelector('#stay').onclick = () => closePanel();
   sheet.querySelector('#quit').onclick = () => {
     closePanel();
@@ -888,10 +939,15 @@ function openSettings() {
     ...(FINE ? [] : [{ k: 'vibro', name: 'Вибрация', note: CAN_VIBRATE ? '' : 'На iPhone браузер не умеет вибрировать', off: !CAN_VIBRATE }]),
     { k: 'reduced', name: 'Меньше анимации', note: 'Без тряски, пульса и замедления' },
   ];
+  // Обучение — только вне партии (пока хост ждёт друга, тоже можно).
+  const learn = canTutor();
+  const learnNote = tutor ? 'Обучение уже идёт' : learn ? 'Шесть коротких раундов против манекена' : 'Можно вне партии';
   const sheet = openPanel('settings', `<div class="sh-head" data-drag><b>Настройки</b><button class="icbtn" data-close data-focus aria-label="Закрыть"><span>✕</span></button></div>
     ${rows.map((x) => `<button class="toggle" role="switch" data-k="${x.k}" aria-checked="${!x.off && !!settings[x.k]}"${x.off ? ' disabled' : ''}>
-      <span>${x.name}${x.note ? `<small>${x.note}</small>` : ''}</span><i></i></button>`).join('')}`, { label: 'Настройки' });
-  sheet.querySelectorAll('.toggle:not(:disabled)').forEach((t) => (t.onclick = () => {
+      <span>${x.name}${x.note ? `<small>${x.note}</small>` : ''}</span><i></i></button>`).join('')}
+    <button class="toggle go" id="tutor"${learn ? '' : ' disabled'}><span>${progress.tutorial ? 'Показать обучение снова' : 'Пройти обучение'}<small>${learnNote}</small></span><b class="arr" aria-hidden="true">→</b></button>`, { label: 'Настройки' });
+  sheet.querySelector('#tutor').onclick = startTutor;
+  sheet.querySelectorAll('.toggle[data-k]:not(:disabled)').forEach((t) => (t.onclick = () => {
     const k = t.dataset.k;
     settings[k] = !settings[k];
     t.setAttribute('aria-checked', String(settings[k]));
@@ -1026,9 +1082,12 @@ function openRules(first = helpAt, { brief = false, onPlay = null } = {}) {
       <button class="icbtn" data-close aria-label="Закрыть"><span>✕</span></button></div></div>
     <div class="rules-body" tabindex="-1" data-focus>${list.map(ruleCard).join('')}
       ${brief ? `<div class="rules-foot"><p>Остальное — перегородки, подмену ядра, огонь — можно открыть в любой момент кнопкой «?» вверху.</p>
-        <button class="btn main" style="flex:0 0 60px" id="rgo">Понятно, играть</button></div>` : ''}</div>`, { label: 'Как играть' });
+        <button class="btn main" style="flex:0 0 60px" id="rgo">Понятно, играть</button></div>`
+        : canTutor() ? `<div class="rules-foot"><p>Попробуй всё это руками: шесть коротких раундов против манекена, без таймера.</p>
+        <button class="btn main" style="flex:0 0 60px" id="rtrain">Потренироваться</button></div>` : ''}</div>`, { label: 'Как играть' });
   sheet.classList.add('rules');
   sheet.querySelector('#rgo')?.addEventListener('click', () => { closePanel('rules'); onPlay?.(); });
+  sheet.querySelector('#rtrain')?.addEventListener('click', startTutor);
   const clk = sheet.querySelector('.rclock');
   const tick = () => {
     const left = clockLeft();
@@ -1108,7 +1167,7 @@ function createBoard(viewer) {
       if (opts.dim) d.classList.add('dim');
       if (opts.danger) d.classList.add('danger');
       d.querySelector('span').textContent = opts.dead ? '✕' : String(p.index + 1);
-      node.setAttribute('aria-label', `фишка ${p.index + 1}, ${p.owner === viewer ? 'твоя' : 'соперника'}${opts.dead ? ', сбита' : opts.core ? ', ядро' : ''}`);
+      node.setAttribute('aria-label', `фишка ${p.index + 1}, ${p.owner === viewer ? 'твоя' : OPP.gen}${opts.dead ? ', сбита' : opts.core ? ', ядро' : ''}`);
       d.querySelectorAll('.core').forEach((x) => x.remove());
       if (opts.core && !opts.dead) d.append(el('<i class="core"></i>'));
       else if (opts.nextCore && !opts.dead) d.append(el('<i class="core next"></i>')); // сюда переедет ядро после «Готово!»
@@ -1178,6 +1237,21 @@ function drawPieces(b, state, { core = null, nextCore = null, sel = null, dimOp 
   }
 }
 
+// Линия прицела из клетки t (абсолютные координаты) — от края фишки до края поля или до перегородки.
+// cls 'op' — красная линия: так обучение показывает, куда выстрелит манекен.
+function aimLine(b, t, dir, walls, cls = '') {
+  const from = b.center(t.r, t.c);
+  const L = 5 * b.step - 6;
+  const u = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dirToView(b.viewer, dir)];
+  const start = { x: from.x + u[0] * b.cell / 2, y: from.y + u[1] * b.cell / 2 };
+  const tr = R.traceShot([], { id: '', r: t.r, c: t.c }, dir, walls);
+  let stop = { x: u[0] ? (u[0] > 0 ? L : 0) : from.x, y: u[1] ? (u[1] > 0 ? L : 0) : from.y };
+  if (tr.wall) { const ec = b.center(tr.end.r, tr.end.c); stop = { x: ec.x + u[0] * b.face, y: ec.y + u[1] * b.face }; }
+  return u[0] === 0
+    ? `<div class="shotline v ${cls}" style="transform:translate(${from.x - 3}px,${Math.min(start.y, stop.y)}px);height:${Math.abs(stop.y - start.y)}px"></div>`
+    : `<div class="shotline h ${cls}" style="transform:translate(${Math.min(start.x, stop.x)}px,${from.y - 3}px);width:${Math.abs(stop.x - start.x)}px"></div>`;
+}
+
 // ---------- игра: hotseat ----------
 // Оба игрока за одним экраном. Хост = Игрок 1 (снизу), гость = Игрок 2 (для него поле повёрнуто).
 const game = {
@@ -1191,7 +1265,16 @@ const game = {
   events: [],
 };
 
+// Из лобби или после обучения: комнату хоста закрываем, играем вдвоём за одним экраном.
+function playHotseat() {
+  match?.leave();
+  match = null;
+  lobbyLink = null;
+  startMatch();
+}
+
 function startMatch() {
+  leaveTutor();
   setPlaying('hot');
   countGame();
   game.state = null;
@@ -1294,7 +1377,7 @@ function nextPlanning(player) {
     core: R.coreAt(game.cores[player], game.swaps[player], round),
     otherDone: game.orders[R.other(player)] !== null,
     onSubmit: async (orders) => {
-      game.orders[player] = await sealSwap(player, orders, round);
+      game.orders[player] = await sealSwap(game, player, orders, round);
       if (player === 'host') nextPlanning('guest');
       else resolve();
     },
@@ -1302,29 +1385,33 @@ function nextPlanning(player) {
 }
 
 // Подмена уходит судье только отпечатком commit(цель, соль), как по сети; цель игрок хранит до конца партии.
-async function sealSwap(player, orders, round) {
+// g — партия на этом устройстве: hotseat (game) или обучение.
+async function sealSwap(g, player, orders, round) {
   if (orders?.action?.type !== 'swap') return orders;
   const salt = makeSalt();
   const core = orders.action.target;
-  game.swapPending[player] = { core, salt, round };
+  g.swapPending[player] = { core, salt, round };
   return { ...orders, action: { type: 'swap', hash: await commit(core, salt) } };
 }
 
-// Подсказки 1-го раунда: только в первых двух партиях на этом устройстве.
+// Подсказки 1-го раунда: только в первых двух партиях на этом устройстве и не тому, кто прошёл обучение.
 const HINTS = [
   `${TAP} фишку, затем соседнюю клетку — это шаг. Выстрел или скан — одно действие на весь раунд.`,
   'Выстрел: выбери фишку, нажми «Выстрел» и стрелку. Пуля летит с клетки после шага и бьёт первую фишку на пути — даже свою.',
   '«Скан» один раз за игру тайно покажет, ядро ли чужая фишка. «Подмена» один раз тайно перенесёт твоё ядро на другую фишку. Жми «Готово!», пока не вышло время.',
 ];
 
-// ctx: { state, deadline, core, otherDone, onSubmit(orders) }.
+// ctx: { state, deadline, core, otherDone, onSubmit(orders), guide }.
+// guide — обучение: тренер разрешает только нужное действие (см. coachFor), таймера нет.
 // Возвращает ручку { setOtherDone(), lock(text) } для сетевых событий.
 function showPlanning(player, ctx) {
   const state = ctx.state;
   const me = player;
+  const guide = ctx.guide || null;
   const fire = state.round >= R.FIRE_FROM_ROUND;
   const plan = { moves: [null, null, null], action: null };
-  let sel = null, mode = 'step', scanMode = false, swapMode = false, hint = state.round === 1 && progress.games <= 2 ? 0 : -1;
+  let sel = null, mode = 'step', scanMode = false, swapMode = false;
+  let hint = !guide && !progress.tutorial && state.round === 1 && progress.games <= 2 ? 0 : -1;
   let sent = null; // отправленные приказы: после «Готово!» маркер ядра переезжает на цель подмены
   const deadline = ctx.deadline;
   const scans = state.private[me]?.scans || [];
@@ -1332,15 +1419,18 @@ function showPlanning(player, ctx) {
   const otherDone = ctx.otherDone;
   let locked = false;
   // Разовая подсказка: первый результат своего скана на этом устройстве.
-  let tip = hint < 0 && scans.length && firstTime('scan')
+  let tip = !guide && hint < 0 && scans.length && firstTime('scan')
     ? 'Скан сработал: подпись «ЯДРО» или «пустышка» под фишкой соперника видишь только ты.' : null;
+  // Обучение: что сейчас на экране — тренер решает по этому, можно ли действие.
+  const view = () => ({ plan, sel, mode, scanMode, locked });
+  const may = (kind, arg) => !guide || guide.allow(kind, arg, view(), screen);
 
   const screen = el(`<section class="screen duo hdr">
     <div class="col side">
       <div class="top">
         <div><div class="round">Раунд ${state.round}<small>из ${R.MAX_ROUNDS}</small></div>
-          <div class="status" id="ostatus">${otherDone ? '<i class="dot me"></i> Соперник готов' : '<i class="dot op"></i> Соперник думает…'}</div></div>
-        <div class="timer ${fire ? 'fire' : ''}"><i></i><b>0:30</b></div>
+          <div class="status" id="ostatus">${otherDone ? `<i class="dot me"></i> ${cap(OPP.nom)} готов` : `<i class="dot op"></i> ${cap(OPP.nom)} думает…`}</div></div>
+        ${guide ? '' : `<div class="timer ${fire ? 'fire' : ''}"><i></i><b>0:30</b></div>`}
       </div>
       ${fire ? '<button class="firewarn" id="firehelp"><b>Край горит!</b><span>После выстрелов все фишки на краевых клетках сгорят и раскроются. <u>Подробнее</u></span></button>' : ''}
       <div id="hint"></div>
@@ -1355,7 +1445,7 @@ function showPlanning(player, ctx) {
     </div>
   </section>`);
   mount(screen, { title: 'Твой ход', help: 'round' });
-  clock = { deadline, screen }; // таймер виден в шапке правил, пока ввод открыт
+  clock = guide ? null : { deadline, screen }; // таймер виден в шапке правил, пока ввод открыт
   screen.querySelector('#firehelp')?.addEventListener('click', () => openRules('fire'));
   const b = createBoard(me);
   screen.querySelector('#board').replaceWith(b.wrap);
@@ -1396,26 +1486,13 @@ function showPlanning(player, ctx) {
       const t = target(p);
       if (t.r !== p.r || t.c !== p.c) box(t.r, t.c, 'ghost');
     }
-    if (a?.type === 'shot') {
-      const p = mine()[a.piece];
-      const t = target(p);
-      const from = b.center(t.r, t.c);
-      const vd = dirToView(me, a.dir);
-      const L = 5 * b.step - 6;
-      // Линия прицела — от края фишки до края поля или до перегородки.
-      const u = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[vd];
-      const start = { x: from.x + u[0] * b.cell / 2, y: from.y + u[1] * b.cell / 2 };
-      const tr = R.traceShot([], { id: '', r: t.r, c: t.c }, a.dir, state.walls);
-      let stop = { x: u[0] ? (u[0] > 0 ? L : 0) : from.x, y: u[1] ? (u[1] > 0 ? L : 0) : from.y };
-      if (tr.wall) { const ec = b.center(tr.end.r, tr.end.c); stop = { x: ec.x + u[0] * b.face, y: ec.y + u[1] * b.face }; }
-      if (u[0] === 0) m.push(`<div class="shotline v" style="transform:translate(${from.x - 3}px,${Math.min(start.y, stop.y)}px);height:${Math.abs(stop.y - start.y)}px"></div>`);
-      else m.push(`<div class="shotline h" style="transform:translate(${Math.min(start.x, stop.x)}px,${from.y - 3}px);width:${Math.abs(stop.x - start.x)}px"></div>`);
-    }
+    if (a?.type === 'shot') m.push(aimLine(b, target(mine()[a.piece]), a.dir, state.walls));
     if (a?.type === 'scan') {
       const t = state.pieces.find((q) => q.owner !== me && q.index === a.target);
       box(t.r, t.c, 'scantarget', '', true);
     }
-    if (scanMode) for (const q of state.pieces) if (q.owner !== me && q.alive) box(q.r, q.c, 'scantarget', '', true);
+    // В обучении видна только та клетка, которую ждёт тренер.
+    if (scanMode) for (const q of state.pieces) if (q.owner !== me && q.alive && (!guide || guide.shows('scan', q.index, view()))) box(q.r, q.c, 'scantarget', '', true);
     if (swapMode) for (const q of mine()) if (swapTarget(q)) box(q.r, q.c, 'swaptarget', '', true);
     if (sel !== null && !scanMode && !swapMode) {
       const p = mine()[sel];
@@ -1425,6 +1502,7 @@ function showPlanning(player, ctx) {
         if (!R.inBounds(r, c)) continue;
         const vd = ARROW[dirToView(me, d)];
         if (mode === 'step' && R.crossesWall(state.walls, base.r, base.c, d)) continue; // через перегородку не шагнуть
+        if (guide && !guide.shows(mode, d, view())) continue;
         if (mode === 'step') box(r, c, 'stepcell', `<span>${vd}</span>`, true);
         else box(r, c, 'shotcell', `<span>${vd}</span>`, true);
       }
@@ -1442,12 +1520,14 @@ function showPlanning(player, ctx) {
     b.marks.innerHTML = m.join('');
     b.over.innerHTML = o.join('');
 
-    // подсказка
+    // подсказка (в обучении на её месте фраза тренера, её рисует guide.paint)
     const hintBox = screen.querySelector('#hint');
-    hintBox.innerHTML = hint >= 0 && hint < HINTS.length
-      ? `<div class="hint"><span class="badge">${hint + 1}/${HINTS.length}</span><span>${HINTS[hint]} <b class="next">${hint < HINTS.length - 1 ? 'дальше →' : 'понятно ✓'}</b></span></div>`
-      : tip ? `<div class="hint"><span class="badge">?</span><span>${tip} <b class="next">понятно ✓</b></span></div>` : '';
-    hintBox.querySelector('.hint')?.addEventListener('click', () => { if (hint >= 0 && hint < HINTS.length) hint++; else tip = null; render(); });
+    if (!guide) {
+      hintBox.innerHTML = hint >= 0 && hint < HINTS.length
+        ? `<div class="hint"><span class="badge">${hint + 1}/${HINTS.length}</span><span>${HINTS[hint]} <b class="next">${hint < HINTS.length - 1 ? 'дальше →' : 'понятно ✓'}</b></span></div>`
+        : tip ? `<div class="hint"><span class="badge">?</span><span>${tip} <b class="next">понятно ✓</b></span></div>` : '';
+      hintBox.querySelector('.hint')?.addEventListener('click', () => { if (hint >= 0 && hint < HINTS.length) hint++; else tip = null; render(); });
+    }
 
     // предупреждение о крае
     const edge = screen.querySelector('#edge');
@@ -1467,13 +1547,19 @@ function showPlanning(player, ctx) {
     screen.querySelectorAll('.tile[data-i]').forEach((t) => (t.onclick = () => {
       if (locked) return;
       if (swapMode) { pickSwap(+t.dataset.i); return; }
+      if (!may('select', +t.dataset.i)) return;
       sel = +t.dataset.i; mode = 'step'; scanMode = false; sfx.tap(); buzz(8); render();
     }));
 
     // режим шаг/выстрел
     screen.querySelector('#modes').innerHTML = sel !== null
       ? `<button class="mode ${mode === 'step' ? 'on' : ''}" data-m="step">Шаг</button><button class="mode shotmode ${mode === 'shot' ? 'on' : ''}" data-m="shot">Выстрел</button>` : '';
-    screen.querySelectorAll('.mode').forEach((x) => (x.onclick = () => { mode = x.dataset.m; if (hint === 0 && mode === 'shot') hint = 1; render(); }));
+    screen.querySelectorAll('.mode').forEach((x) => (x.onclick = () => {
+      if (!may('mode', x.dataset.m)) return;
+      mode = x.dataset.m;
+      if (hint === 0 && mode === 'shot') hint = 1;
+      render();
+    }));
 
     const scanBtn = screen.querySelector('#scan');
     const used = state.scanUsed[me];
@@ -1487,6 +1573,7 @@ function showPlanning(player, ctx) {
     swapBtn.innerHTML = swapUsed ? 'Подмена<small>×0</small>' : a?.type === 'swap' ? 'Подмена<small>отменить</small>' : swapMode ? 'Отмена' : 'Подмена<small>×1</small>';
     swapBtn.classList.toggle('on', swapMode);
     readyView();
+    guide?.paint(screen, b, view());
   }
 
   // «Готово!»: за 10 с до конца пульсирует (за 5 с чаще); подпись — «все стоят» или отсчёт, если приказы есть.
@@ -1544,8 +1631,8 @@ function showPlanning(player, ctx) {
     const tap = TAP.toLowerCase();
     if (scanMode) {
       const t = at((q) => q.owner !== me && q.alive);
-      if (t) { plan.action = { type: 'scan', target: t.index }; scanMode = false; sfx.tap(); render(); }
-      else nudge(cell, `Скан: ${tap} фишку соперника или нажми «Отмена»`);
+      if (t) { if (may('scan', t.index)) { plan.action = { type: 'scan', target: t.index }; scanMode = false; sfx.tap(); render(); } }
+      else if (may('miss')) nudge(cell, `Скан: ${tap} фишку ${OPP.gen} или нажми «Отмена»`);
       return;
     }
     if (swapMode) {
@@ -1558,38 +1645,41 @@ function showPlanning(player, ctx) {
       const p = mine()[sel];
       const base = mode === 'step' ? p : target(p);
       const dir = Object.keys(R.DIRS).find((d) => base.r + R.DIRS[d].dr === cell.r && base.c + R.DIRS[d].dc === cell.c);
-      if (dir && mode === 'step') { setStep(dir); return; }
-      if (dir && mode === 'shot') { setShot(dir); return; }
+      if (dir && (mode === 'step' || mode === 'shot')) {
+        if (may(mode, dir)) (mode === 'step' ? setStep : setShot)(dir);
+        return;
+      }
     }
     const own = at((q) => q.owner === me && q.alive);
     if (own) {
-      if (own.index === sel) plan.moves[sel] = null; // повторный тап — «стоять»
-      else { sel = own.index; mode = 'step'; }
+      if (own.index === sel) { if (!may('stand', sel)) return; plan.moves[sel] = null; } // повторный тап — «стоять»
+      else { if (!may('select', own.index)) return; sel = own.index; mode = 'step'; }
       sfx.tap();
       buzz(8);
       render();
       return;
     }
     // Мимо: не молчим, а подсказываем. Выбор фишки при этом не сбрасывается.
+    if (!may('miss')) return;
     const op = at((q) => q.owner !== me && q.alive);
-    if (sel === null) nudge(cell, op ? `Это фишка соперника. ${TAP} свою` : at((q) => !q.alive) ? 'Эта фишка сбита' : `Сначала ${tap} свою фишку`);
+    if (sel === null) nudge(cell, op ? `Это фишка ${OPP.gen}. ${TAP} свою` : at((q) => !q.alive) ? 'Эта фишка сбита' : `Сначала ${tap} свою фишку`);
     else if (mode === 'shot') nudge(cell, 'Выстрел: выбери стрелку рядом с фишкой');
-    else nudge(cell, op ? 'Это фишка соперника. Шагни на подсвеченную клетку' : 'Шаг — только на соседнюю клетку');
+    else nudge(cell, op ? `Это фишка ${OPP.gen}. Шагни на подсвеченную клетку` : 'Шаг — только на соседнюю клетку');
   });
 
   screen.querySelector('#scan').onclick = () => {
     if (locked) return;
-    if (plan.action?.type === 'scan') { plan.action = null; scanMode = false; }
-    else { scanMode = !scanMode; swapMode = false; sel = null; }
+    if (plan.action?.type === 'scan') { if (!may('unscan')) return; plan.action = null; scanMode = false; }
+    else { if (!may('scanmode')) return; scanMode = !scanMode; swapMode = false; sel = null; }
     render();
   };
   screen.querySelector('#swap').onclick = () => {
-    if (locked || !canSwap()) return;
+    if (locked || !canSwap() || !may('swapmode')) return;
     if (plan.action?.type === 'swap') { plan.action = null; swapMode = false; }
     else { swapMode = !swapMode; scanMode = false; sel = null; }
     render();
   };
-  screen.querySelector('#ready').onclick = () => submit(plan);
+  screen.querySelector('#ready').onclick = () => { if (may('ready')) submit(plan); };
 
   // Шаг выбранной фишки (dir — абсолютное направление). За край поля не шагаем.
   function setStep(dir) {
@@ -1623,25 +1713,27 @@ function showPlanning(player, ctx) {
     if (n !== undefined) {
       if (scanMode) {
         const t = state.pieces.find((q) => q.owner !== me && q.alive && q.index === n);
-        if (t) { plan.action = { type: 'scan', target: n }; scanMode = false; sfx.tap(); render(); }
+        if (t && may('scan', n)) { plan.action = { type: 'scan', target: n }; scanMode = false; sfx.tap(); render(); }
         return;
       }
       if (swapMode) { pickSwap(n); return; }
-      if (mine()[n].alive) { sel = n; mode = 'step'; sfx.tap(); render(); }
+      if (mine()[n].alive && may('select', n)) { sel = n; mode = 'step'; sfx.tap(); render(); }
       return;
     }
     const vd = KEY_DIR[ev.code];
     if (vd) {
-      if (sel !== null && !scanMode && !swapMode) (ev.shiftKey || mode === 'shot' ? setShot : setStep)(dirToAbs(me, vd));
+      const kind = ev.shiftKey || mode === 'shot' ? 'shot' : 'step';
+      const d = dirToAbs(me, vd);
+      if (sel !== null && !scanMode && !swapMode && may(kind, d)) (kind === 'shot' ? setShot : setStep)(d);
       return;
     }
     if (ev.code === 'Digit0' || ev.code === 'Numpad0' || ev.code === 'Backspace') {
-      if (sel !== null) { plan.moves[sel] = null; sfx.tap(); buzz(8); render(); }
+      if (sel !== null && may('stand', sel)) { plan.moves[sel] = null; sfx.tap(); buzz(8); render(); }
       return;
     }
     if (ev.code === 'KeyS') { screen.querySelector('#scan').click(); return; }
     if (ev.code === 'KeyW') { screen.querySelector('#swap').click(); return; }
-    if (ev.code === 'Enter' || ev.code === 'NumpadEnter') { submit(plan); return; }
+    if (ev.code === 'Enter' || ev.code === 'NumpadEnter') { if (may('ready')) submit(plan); return; }
     if (ev.code === 'Escape') { sel = null; scanMode = false; swapMode = false; render(); return; }
     return false;
   });
@@ -1692,12 +1784,14 @@ function showPlanning(player, ctx) {
     }
   };
   render();
-  tick();
   stopTimer();
-  timerId = ticker = setInterval(tick, 1000);
+  if (!guide) { // в обучении таймера нет
+    tick();
+    timerId = ticker = setInterval(tick, 1000);
+  }
   return {
     setOtherDone() {
-      screen.querySelector('#ostatus').innerHTML = '<i class="dot me"></i> Соперник готов';
+      screen.querySelector('#ostatus').innerHTML = `<i class="dot me"></i> ${cap(OPP.nom)} готов`;
       if (!locked) setTitle('Соперник готов!');
     },
     lock(text) {
@@ -1707,16 +1801,17 @@ function showPlanning(player, ctx) {
   };
 }
 
-// ---------- разрешение раунда (в hotseat судья — этот же экран) ----------
-function resolve() {
-  game.prev = game.state;
-  let { state } = R.resolveRound(game.state, game.orders);
+// ---------- разрешение раунда (в hotseat и обучении судья — этот же экран) ----------
+// g — партия на этом устройстве: оба ядра известны, владельцы отвечают честно. Возвращает новое состояние.
+function judge(g) {
+  g.prev = g.state;
+  let { state } = R.resolveRound(g.state, g.orders);
   // Подмена действует, только если судья её принял; с этого раунда ответы — по новому ядру.
   for (const pl of R.PLAYERS) {
-    if (game.swapPending[pl] && state.swaps?.[pl]?.round === game.prev.round) game.swaps[pl] = game.swapPending[pl];
-    game.swapPending[pl] = null;
+    if (g.swapPending[pl] && state.swaps?.[pl]?.round === g.prev.round) g.swaps[pl] = g.swapPending[pl];
+    g.swapPending[pl] = null;
   }
-  const coreNow = (pl) => R.coreAt(game.cores[pl], game.swaps[pl], game.prev.round);
+  const coreNow = (pl) => R.coreAt(g.cores[pl], g.swaps[pl], g.prev.round);
   // Владельцы честно отвечают «ядро/пустышка»: в hotseat оба ядра известны.
   if (state.pendingReveals.length) {
     const answers = {};
@@ -1731,9 +1826,14 @@ function resolve() {
     const t = state.pieces.find((q) => q.id === sc.targetId);
     state = R.applyScanAnswer(state, R.answerFor(coreNow(t.owner), t), sc.by);
   }
-  game.events = state.lastEvents;
-  game.state = state;
-  game.orders = { host: null, guest: null };
+  g.events = state.lastEvents;
+  g.state = state;
+  g.orders = { host: null, guest: null };
+  return state;
+}
+
+function resolve() {
+  const state = judge(game);
   const over = state.phase === 'over';
   showReplay({
     viewer: 'host', // в hotseat повтор смотрят оба, с точки зрения Игрока 1
@@ -1744,9 +1844,10 @@ function resolve() {
 }
 
 // ---------- экран: повтор раунда ----------
-// opts: { viewer, prev, state, events, nextLabel, onNext, mySwap }
+// opts: { viewer, prev, state, events, nextLabel, onNext, mySwap, coach }
 // mySwap: { from, to } — своя подмена в этом раунде (только по сети: в hotseat экран видят оба).
-function showReplay({ viewer, prev, state, events, nextLabel, onNext, mySwap = null }) {
+// coach — обучение: объяснение тренера, которое появляется, когда повтор досмотрен.
+function showReplay({ viewer, prev, state, events, nextLabel, onNext, mySwap = null, coach = null }) {
   stopTimer();
   const screen = el(`<section class="screen duo hdr">
     <div class="col side">
@@ -1773,7 +1874,16 @@ function showReplay({ viewer, prev, state, events, nextLabel, onNext, mySwap = n
     const my = ++token;
     setPlaying(true);
     try { await playReplay(b, screen, prev, state, events, viewer, my, () => token, mySwap); }
-    finally { rp.skip = false; if (token === my) setPlaying(false); }
+    finally { rp.skip = false; if (token === my) { setPlaying(false); explain(); } }
+  };
+  // Обучение: повтор досмотрен (или пропущен) — тренер объясняет, что случилось, и подсвечивает «Дальше».
+  const explain = () => {
+    if (!coach || !screen.isConnected || screen.querySelector('.coach')) return;
+    screen.querySelector('#tip').innerHTML = `<div class="hint tip coach"><span class="badge">✓</span><span>${coach}</span></div>`;
+    screen.classList.add('coached');
+    next.classList.add('lit');
+    // На телефоне объяснение сдвигает «Дальше» за нижний край — докручиваем, чтобы кнопку было видно.
+    next.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });
   };
   // Пока идёт повтор, кнопка «Пропустить» сразу показывает итог; после — «Ещё раз».
   const skip = () => { if (playing) RP.skip = true; };
@@ -1821,11 +1931,11 @@ const OWNER_GEN = { host: 'Игрока 1', guest: 'Игрока 2' };
 function pieceName(p, acc = false) {
   if (NAMING === 'hotseat') return `${acc ? 'фишку' : 'фишка'} ${p.index + 1} ${OWNER_GEN[p.owner]}`;
   if (p.owner === NAMING) return `${acc ? 'твою фишку' : 'твоя фишка'} ${p.index + 1}`;
-  return `${acc ? 'фишку' : 'фишка'} ${p.index + 1} соперника`;
+  return `${acc ? 'фишку' : 'фишка'} ${p.index + 1} ${OPP.gen}`;
 }
 function whoName(player) {
   if (NAMING === 'hotseat') return NAME[player];
-  return player === NAMING ? 'Ты' : 'Соперник';
+  return player === NAMING ? 'Ты' : cap(OPP.nom);
 }
 
 async function playReplay(b, screen, prev, finalState, events, viewer, my, current, mySwap = null) {
@@ -1854,7 +1964,7 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
     else if (mine) add(`<div><span class="rv">⇄ Ты подменил ядро${mySwap ? `: теперь это фишка ${mySwap.to + 1}` : ''}. Соперник видит только, что подмена была.</span></div>`);
     else {
       const stale = (prev.private?.[viewer]?.scans || []).some((s) => s.round < e.round && byId(s.targetId)?.owner === e.by);
-      add(`<div><span class="b">⇄</span> Соперник подменил ядро. На какую фишку — не видно.${stale ? ' Твой скан мог устареть.' : ''}</div>`);
+      add(`<div><span class="b">⇄</span> ${cap(OPP.nom)} подменил ядро. На какую фишку — не видно.${stale ? ' Твой скан мог устареть.' : ''}</div>`);
     }
   }
 
@@ -1882,8 +1992,8 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
     if (e.ok) add(`<div><span class="n ${who}">${p.index + 1}</span> шаг ${WORD[dirToView(viewer, e.dir)]}</div>`);
     else add(`<div><span class="b">●</span> ${pieceName(p)}: шаг ${WORD[dirToView(viewer, e.dir)]} не вышел — ${REASON[e.reason]}</div>`);
   }
-  // Разовая подсказка: первый раз фишка упёрлась — объясняем правило движения.
-  if (moves.some((e) => !e.ok && e.reason !== 'edge') && firstTime('bump')) {
+  // Разовая подсказка: первый раз фишка упёрлась — объясняем правило движения (в обучении объясняет тренер).
+  if (!tutor && moves.some((e) => !e.ok && e.reason !== 'edge') && firstTime('bump')) {
     const box = screen.querySelector('#tip');
     box.innerHTML = '<button class="hint tip"><span class="badge">?</span><span>Почему фишка не пошла? <b class="next">Правила движения →</b></span></button>';
     box.firstElementChild.onclick = () => openRules('move');
@@ -2191,6 +2301,219 @@ async function copyText(text, btn, label) {
 }
 
 // =====================================================================
+// Обучение: шесть коротких раундов против манекена, без сети и без таймера.
+// Считает настоящий rules.js; приказы манекена заданы заранее, а игрок делает только то,
+// что подсвечивает тренер. Сценарий сходится при любом выборе ядра: выстрел манекена упирается в перегородку.
+// =====================================================================
+const TUT_WALLS = R.WALL_LAYOUTS[2]; // перегородки: под рядом 2 слева и под рядом 3 справа
+const TUT_CORE = 1; // ядро манекена — его фишка 2; в 5-м раунде он подменит его на фишку 1
+const TUT_STEPS = 7; // выбор ядра и шесть раундов
+
+// Раунды. me — приказы, которых тренер ждёт от игрока; op — приказы манекена (подмена — целью, отпечаток сделает sealSwap);
+// ghost и aim — ход манекена, который видно заранее (куда шагнёт, куда выстрелит); say — фраза тренера на каждое действие;
+// title — надпись на фразе (badges — другая надпись для части действий); after — объяснение после повтора.
+const TUTOR = [
+  { title: 'Шаг',
+    me: { moves: [null, null, 'up'], action: null }, op: { moves: [null, null, 'down'], action: null }, ghost: [[1, 2]],
+    say: { select: `Твои фишки — мятные, внизу. ${TAP} фишку 3.`, step: `${TAP} клетку со стрелкой: фишка шагнёт вверх.`,
+      ready: 'Стрелка на фишке — твой приказ, красный пунктир — ход манекена. Жми «Готово!».' },
+    after: 'Шагнули оба сразу. В каждом раунде сначала все шаги, потом выстрелы.' },
+  { title: 'Упёрлись',
+    me: { moves: [null, null, 'up'], action: null }, op: { moves: [null, null, 'down'], action: null }, ghost: [[2, 2]],
+    say: { select: `Манекен снова идёт к центру. ${TAP} фишку 3.`, step: 'Шагни вверх — в ту же клетку, что и манекен.',
+      ready: 'Жми «Готово!» и смотри, что будет.' },
+    after: 'Две фишки в одну клетку — обе остались на месте. Так же при обмене местами и шаге в клетку, которую не освободили.' },
+  { title: 'Выстрел',
+    me: { moves: [null, null, null], action: { type: 'shot', piece: 2, dir: 'up' } }, op: { moves: ['left', 'left', null], action: null },
+    say: { select: `Фишка манекена прямо над твоей. ${TAP} фишку 3.`, mode: 'Нажми «Выстрел».',
+      shot: `${TAP} жёлтую стрелку вверх: пуля бьёт первую фишку на пути.`, ready: 'Жми «Готово!».' },
+    after: 'Попал! Владелец раскрыл сбитую фишку: пустышка. Значит, ядро манекена — одна из двух оставшихся.' },
+  { title: 'Укрытие', badges: { scanmode: 'Скан', scan: 'Скан', ready: 'Скан' },
+    me: { moves: [null, null, 'right'], action: { type: 'scan', target: 1 } },
+    op: { moves: ['down', null, null], action: { type: 'shot', piece: 0, dir: 'down' } }, ghost: [[1, 3]], aim: [{ r: 1, c: 3, dir: 'down' }],
+    say: { select: `Манекен шагнёт и выстрелит вниз. ${TAP} фишку 3.`, step: 'Шагни вправо, под перегородку: пуля в неё упрётся.',
+      scanmode: 'Теперь найди ядро. Нажми «Скан»: он один на всю партию.', scan: `${TAP} фишку 2 манекена.`, ready: 'Жми «Готово!».' },
+    after: 'Пуля упёрлась в перегородку. А скан показал: фишка 2 манекена — ЯДРО. Этот ответ видишь только ты.' },
+  { title: 'Подмена',
+    me: { moves: [null, null, 'left'], action: { type: 'shot', piece: 2, dir: 'up' } }, op: { moves: ['down', null, null], action: { type: 'swap', target: 0 } },
+    say: { select: `Скан сказал: ядро — фишка 2 манекена. ${TAP} фишку 3.`, step: 'Шагни влево, на одну линию с ней.', mode: 'Нажми «Выстрел».',
+      shot: 'Стреляй вверх.', ready: 'Жми «Готово!».' },
+    after: 'Подмена! Ещё до шагов манекен тайно перенёс ядро на другую фишку, и твой скан устарел. Подмена — раз за партию, вместо выстрела или скана.' },
+  { title: 'Победа',
+    me: { moves: [null, null, 'up'], action: { type: 'shot', piece: 2, dir: 'right' } }, op: null,
+    say: { select: `У манекена одна фишка — ядро точно в ней. ${TAP} фишку 3.`, step: 'Шагни вверх.', mode: 'Нажми «Выстрел».',
+      shot: 'Стреляй вправо.', ready: 'Жми «Готово!».' },
+    after: 'Ядро манекена сбито — победа!' },
+];
+
+let tutor = null; // { g } — идёт обучение; g — его партия (как game в hotseat)
+let netStarted = false; // по сети уже начиналась партия: обучение — только в новой комнате
+
+// Обучение — вне партии: в меню, после игры на одном экране и пока хост ждёт друга (пришёл друг — обучение прервётся).
+const canTutor = () => !playing && !tutor && (!match || (match.role === 'host' && !netStarted));
+
+function startTutor() {
+  if (!canTutor()) return;
+  const g = { state: null, cores: { host: null, guest: TUT_CORE }, salts: { host: null, guest: null }, orders: { host: null, guest: null },
+    swaps: { host: null, guest: null }, swapPending: { host: null, guest: null }, prev: null, events: [] };
+  tutor = { g };
+  OPP = DUMMY;
+  NAMING = 'host';
+  setPlaying('tut'); // до закрытия шторки: ловушка «Назад» остаётся на месте
+  closePanel();
+  sfx.tap();
+  showCorePick('host', (core, salt) => {
+    if (tutor?.g !== g) return;
+    g.cores.host = core;
+    g.salts.host = salt;
+    g.state = R.createGame({ hostCore: core, guestCore: TUT_CORE, walls: TUT_WALLS });
+    tutorRound(g);
+  }, 'С', TUT_WALLS);
+  dress(1);
+}
+
+function tutorRound(g) {
+  const step = TUTOR[g.state.round - 1];
+  const n = g.state.round + 1; // шаг 1 — выбор ядра
+  showPlanning('host', {
+    state: g.state, deadline: Infinity, core: g.cores.host, otherDone: true, guide: coachFor(step),
+    onSubmit: async (orders) => {
+      g.orders.host = orders;
+      g.orders.guest = await sealSwap(g, 'guest', step.op, g.state.round);
+      if (tutor?.g !== g) return; // пока запечатывалась подмена, из обучения вышли
+      const state = judge(g);
+      showReplay({
+        viewer: 'host', prev: g.prev, state, events: g.events, coach: step.after, nextLabel: 'Дальше →',
+        onNext: () => (state.phase === 'over' ? tutorEnd() : tutorRound(g)),
+      });
+      dress(n);
+    },
+  });
+  dress(n);
+}
+
+// Тренер экрана планирования: какое действие нужно сейчас, можно ли то, что нажали, что показать и подсветить.
+function coachFor(step) {
+  const T = step.me;
+  const need = (v) => {
+    const k = T.moves.findIndex(Boolean);
+    if (k >= 0 && v.plan.moves[k] !== T.moves[k]) {
+      if (v.sel !== k) return { kind: 'select', arg: k, piece: k };
+      if (v.mode !== 'step') return { kind: 'mode', arg: 'step', piece: k };
+      return { kind: 'step', arg: T.moves[k], piece: k };
+    }
+    const a = T.action, p = v.plan.action;
+    if (a?.type === 'shot' && !(p?.type === 'shot' && p.piece === a.piece && p.dir === a.dir)) {
+      if (v.sel !== a.piece) return { kind: 'select', arg: a.piece, piece: a.piece };
+      if (v.mode !== 'shot') return { kind: 'mode', arg: 'shot', piece: a.piece };
+      return { kind: 'shot', arg: a.dir, piece: a.piece };
+    }
+    if (a?.type === 'scan' && !(p?.type === 'scan' && p.target === a.target)) {
+      return v.scanMode ? { kind: 'scan', arg: a.target } : { kind: 'scanmode' };
+    }
+    return { kind: 'ready' };
+  };
+  // Не то действие: фраза тренера вздрагивает, чтобы на неё посмотрели.
+  const block = (screen) => {
+    sfx.bump();
+    buzz(15);
+    if (REDUCED) return;
+    screen.querySelector('#hint .hint')?.animate?.([{ transform: 'none' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' },
+      { transform: 'translateX(-3px)' }, { transform: 'none' }], { duration: 320, easing: 'ease-in-out' });
+  };
+  return {
+    // kind: select | mode | step | shot | scanmode | scan | ready | stand | unscan | swapmode | miss
+    allow(kind, arg, v, screen) {
+      const w = need(v);
+      const ok = (kind === w.kind && (w.arg === undefined || arg === w.arg))
+        || (kind === 'select' && arg === w.piece) // та же фишка ещё раз — не мешает
+        || (kind === 'mode' && arg === v.mode) // режим и так включён
+        || (kind === 'shot' && w.kind === 'mode' && w.arg === 'shot' && arg === T.action.dir); // Shift+стрелка — сразу выстрел
+      if (!ok) block(screen);
+      return ok;
+    },
+    shows(kind, arg, v) {
+      const w = need(v);
+      return w.kind === kind && w.arg === arg;
+    },
+    paint(screen, b, v) {
+      screen.classList.add('coached');
+      screen.querySelectorAll('.lit').forEach((x) => x.classList.remove('lit'));
+      if (v.locked) return;
+      const w = need(v);
+      const text = step.say[w.kind] || '';
+      const box = screen.querySelector('#hint');
+      box.setAttribute('aria-live', 'polite');
+      if (box.dataset.say !== text) {
+        box.dataset.say = text;
+        box.innerHTML = `<div class="hint coach"><span class="badge">${step.badges?.[w.kind] || step.title}</span><span>${text}</span></div>`;
+      }
+      const lit = {
+        select: () => [screen.querySelector(`.tile[data-i="${w.arg}"]`), b.els.get(R.pieceId(b.viewer, w.arg))?.firstElementChild],
+        mode: () => [screen.querySelector(`.mode[data-m="${w.arg}"]`)],
+        scanmode: () => [screen.querySelector('#scan')],
+        ready: () => [screen.querySelector('#ready')],
+      }[w.kind]?.() || [];
+      lit.forEach((x) => x?.classList.add('lit'));
+      // Ход манекена, который тренер показывает заранее.
+      const extra = (step.ghost || []).map(([r, c]) => {
+        const { x, y } = b.xy(r, c);
+        return `<div class="m opghost" style="transform:translate(${x}px,${y}px)"></div>`;
+      });
+      for (const s of step.aim || []) extra.push(aimLine(b, s, s.dir, b.walls, 'op'));
+      b.marks.insertAdjacentHTML('beforeend', extra.join(''));
+    },
+  };
+}
+
+// Полоса обучения поверх текущего экрана: номер шага и «Пропустить обучение».
+function dress(n) {
+  const screen = app.firstElementChild;
+  screen.classList.add('tut');
+  const bar = el(`<div class="tutbar"><span class="tstep" aria-label="Обучение: шаг ${n} из ${TUT_STEPS}">${n}/${TUT_STEPS}</span>
+    <button class="tskip"><span>Пропустить обучение</span></button></div>`);
+  bar.querySelector('.tskip').onclick = () => {
+    showLobby();
+    toast('Обучение можно пройти в любой момент из настроек', 2600);
+  };
+  screen.prepend(bar);
+}
+
+// Выход из обучения (пропуск, «Назад», пришёл друг): подписи снова про соперника.
+function leaveTutor() {
+  if (!tutor) return false;
+  tutor = null;
+  OPP = RIVAL;
+  return true;
+}
+
+// Конец обучения: победа, последнее правило (огонь) и выбор, как играть дальше.
+function tutorEnd() {
+  progress.tutorial = true;
+  saveProgress();
+  leaveTutor();
+  setPlaying(null);
+  const fire = RULES.find((x) => x.id === 'fire');
+  const screen = el(`<section class="screen split tutend">
+    <div class="col">
+      <div class="pill">обучение пройдено</div>
+      <div class="big">ПОБЕДА!</div>
+      <p class="sub">Ядро манекена найдено за 6 раундов. В настоящей партии соперник решает сам, а на каждый раунд — 30 секунд.</p>
+    </div>
+    <div class="col">
+      <article class="rcard">${fire.pic}<h3>И последнее: огонь с 7-го раунда</h3><p>${fire.text}</p></article>
+      <div class="actions stack"><button class="btn main" id="friend">Играть с другом</button><button class="btn sec" id="hot">Играть на одном экране</button></div>
+    </div>
+  </section>`);
+  mount(screen, { help: 'fire' });
+  sfx.win();
+  buzz([40, 60, 40, 60, 120]);
+  screen.querySelector('#friend').onclick = () => { sfx.tap(); showLobby(); };
+  screen.querySelector('#hot').onclick = () => { sfx.tap(); playHotseat(); };
+  setKeys(screen, (ev) => (ev.code === 'Enter' || ev.code === 'NumpadEnter' ? screen.querySelector('#friend').click() : false));
+}
+
+// =====================================================================
 // Сеть: хост без ?room=, гость с ?room=. Вся логика обмена — в net.js.
 // =====================================================================
 let match = null;
@@ -2208,11 +2531,15 @@ const newRoom = () => {
 
 // ---------- экран: лобби (хост ждёт соперника) ----------
 function showLobby() {
+  leaveTutor();
   document.body.classList.remove('cheat');
   setPlaying(null);
   NAMING = 'host';
   if (!match) match = createHost(netUI);
   const chips = (cls, base) => [0, 1, 2].map((i) => `<div class="chip ${cls}" style="animation-delay:${base + i * 0.3}s"></div>`).join('');
+  // Обучение: новичку при первом заходе — плашка «Впервые?» с крестиком, потом — просто кнопка.
+  const fresh = !progress.tutorial && progress.games === 0 && firstTime('tutor');
+  const learnBtn = '<button class="learnbtn" id="learn"><i>▶</i>Как играть — 1 минута</button>';
   const screen = el(`<section class="screen lobby">
     <div class="col">
       <div style="height:12px"></div>
@@ -2220,6 +2547,8 @@ function showLobby() {
       <h1 class="logo">ДВОЙ<br>НИКИ</h1>
       <div class="chips">${chips('me', 0.15)}</div>
       <p class="lead">Три фишки, одна из них — ядро. Найди ядро соперника раньше, чем он найдёт твоё.</p>
+      ${fresh ? `<div class="tbanner" id="tban"><button class="tbgo" id="learn"><b>Впервые?</b> Пройди обучение за минуту →</button>
+        <button class="icbtn" id="tbx" aria-label="Скрыть"><span>✕</span></button></div>` : learnBtn}
     </div>
     <div class="grow"></div>
     <div class="col">
@@ -2235,12 +2564,12 @@ function showLobby() {
     </div>
   </section>`);
   mount(screen);
-  screen.querySelector('#hot').onclick = () => {
-    match?.leave();
-    match = null;
-    lobbyLink = null;
-    startMatch();
-  };
+  screen.querySelector('#hot').onclick = playHotseat;
+  screen.querySelector('#learn').onclick = startTutor;
+  screen.querySelector('#tbx')?.addEventListener('click', () => {
+    screen.querySelector('#tban').replaceWith(el(learnBtn));
+    screen.querySelector('#learn').onclick = startTutor;
+  });
   if (lobbyLink) netUI.lobby(lobbyLink);
 }
 
@@ -2417,7 +2746,11 @@ const netUI = {
         () => copyText(link, copy, label));
     }
   },
-  fatal(text) { showNotice('Не получилось', text, 'Обновить', () => location.reload()); },
+  fatal(text) {
+    // Обучение идёт без сети: не прерываем его, комнату создадим заново при возврате в лобби.
+    if (tutor) { match?.leave(); match = null; lobbyLink = null; return; }
+    showNotice('Не получилось', text, 'Обновить', () => location.reload());
+  },
   // Гость долго не находит хоста: чаще всего хост свернул страницу, пока отправлял ссылку.
   roomSlow() {
     invite.slow = true;
@@ -2433,6 +2766,9 @@ const netUI = {
   corePick(walls = []) {
     // Гость ещё на экране входа (читает правила): выбор ядра подождёт «Играть».
     if (invite.screen?.isConnected) { invite.walls = walls; inviteStatus(); return; }
+    // Хост проходил обучение, пока ждал: друг пришёл — начинаем партию.
+    if (leaveTutor()) toast('Друг в комнате! Обучение можно пройти потом, из настроек', 3200);
+    netStarted = true;
     closeSheet();
     setPlaying('net');
     countGame();
@@ -2497,7 +2833,7 @@ const netUI = {
 const room = roomFromUrl();
 if (room) {
   NAMING = 'guest';
-  if (progress.games > 0) showWaiting('Подключение', 'Ищем комнату соперника…');
+  if (progress.games > 0 || progress.tutorial) showWaiting('Подключение', 'Ищем комнату соперника…');
   else showInvite();
   match = createGuest(netUI, room);
 } else {
