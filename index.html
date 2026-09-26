@@ -139,8 +139,9 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .scanlabel { position: absolute; top: 0; left: 0; width: var(--cs); height: var(--cs); display: flex; align-items: flex-end; justify-content: center; }
 .scanlabel span { transform: translateY(8px); background: var(--shot); color: var(--ink); font-weight: 900; font-size: 10px; border-radius: 999px; padding: 2px 6px; border: 2px solid #fff; white-space: nowrap; }
 
-/* Перегородка: объёмная планка в щели между клетками («Игрушка»: светлая грань и тень снизу) */
-.wall { position: absolute; top: 0; left: 0; border-radius: 6px; background: var(--bg-deep); z-index: 1;
+/* Перегородка: объёмная планка в щели между клетками («Игрушка»: светлая грань и тень снизу).
+   Лежит нижним слоем: надписи скана, значки фишек и эффекты рисуются поверх неё. */
+.wall { position: absolute; top: 0; left: 0; border-radius: 6px; background: var(--bg-deep);
   box-shadow: inset 0 3px 0 rgba(255,255,255,.28), 0 3px 0 var(--ink); }
 .fx .crumbs { position: absolute; top: 0; left: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 4px solid var(--shot); animation: crumbs 520ms ease-out both; }
 @keyframes crumbs { from { transform: scale(.3); opacity: 1 } to { transform: scale(1.6); opacity: 0 } }
@@ -442,7 +443,8 @@ body.reduced .btn.ready.urge { animation: none; background: var(--fire); color: 
   .cell:hover { background: #E2D9FF; }
   .btn:hover:not(:disabled) { filter: brightness(1.06); }
   .tile:not(.active):not(:disabled):hover, .mode:not(.on):hover { background: rgba(255,255,255,.24); }
-  .textbtn:hover { color: #fff; }
+  .textbtn:hover:not(:disabled) { color: #fff; }
+  .card .textbtn:hover:not(:disabled) { color: var(--ink); } /* на белой карточке белый текст пропадал */
   .icbtn:hover > span { background: rgba(255,255,255,.3); }
   .sheet .icbtn:hover > span { background: #E2D9FF; }
   .btn.soft:hover { filter: brightness(.98); }
@@ -1049,7 +1051,7 @@ function createBoard(viewer) {
   const board = wrap.firstElementChild;
   const layer = board.querySelector('.pieces');
   const b = {
-    wrap, board, viewer, cell: 0, step: 0, els: new Map(), pos: new Map(), walls: [],
+    wrap, board, viewer, cell: 0, step: 0, face: 0, els: new Map(), pos: new Map(), walls: [],
     marks: board.querySelector('.marks'), over: board.querySelector('.over'), fx: board.querySelector('.fx'),
     measure() {
       const w = layer.clientWidth;
@@ -1065,6 +1067,7 @@ function createBoard(viewer) {
     setWalls(walls = []) {
       b.walls = walls;
       const T = Math.max(8, b.cell * 0.14); // толщина планки
+      b.face = b.cell / 2 + (b.step - b.cell) / 2 - T / 2; // от центра клетки до грани планки
       // Прямоугольник отрезка на экране: по двум клеткам, которые он разделяет.
       const rect = (w) => {
         const a = b.xy(w.r, w.c);
@@ -1404,7 +1407,7 @@ function showPlanning(player, ctx) {
       const start = { x: from.x + u[0] * b.cell / 2, y: from.y + u[1] * b.cell / 2 };
       const tr = R.traceShot([], { id: '', r: t.r, c: t.c }, a.dir, state.walls);
       let stop = { x: u[0] ? (u[0] > 0 ? L : 0) : from.x, y: u[1] ? (u[1] > 0 ? L : 0) : from.y };
-      if (tr.wall) { const ec = b.center(tr.end.r, tr.end.c); stop = { x: ec.x + u[0] * b.cell / 2, y: ec.y + u[1] * b.cell / 2 }; }
+      if (tr.wall) { const ec = b.center(tr.end.r, tr.end.c); stop = { x: ec.x + u[0] * b.face, y: ec.y + u[1] * b.face }; }
       if (u[0] === 0) m.push(`<div class="shotline v" style="transform:translate(${from.x - 3}px,${Math.min(start.y, stop.y)}px);height:${Math.abs(stop.y - start.y)}px"></div>`);
       else m.push(`<div class="shotline h" style="transform:translate(${Math.min(start.x, stop.x)}px,${from.y - 3}px);width:${Math.abs(stop.x - start.x)}px"></div>`);
     }
@@ -1863,11 +1866,12 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
     const p = byId(e.id);
     if (e.ok) b.place(e.id, e.to.r, e.to.c, true);
     else if (e.reason !== 'edge') {
-      // Заблокированный шаг: рывок на 20% к цели и возврат.
+      // Заблокированный шаг: рывок на 20% к цели и возврат (в перегородку — только до неё).
       const from = b.xy(e.from.r, e.from.c);
       const d = R.DIRS[e.dir];
       const to = b.xy(e.from.r + d.dr, e.from.c + d.dc);
-      const mid = { x: from.x + (to.x - from.x) * 0.2, y: from.y + (to.y - from.y) * 0.2 };
+      const k = e.reason === 'wall' ? 0.08 : 0.2;
+      const mid = { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k };
       b.els.get(e.id).animate([
         { transform: `translate(${from.x}px,${from.y}px)` },
         { transform: `translate(${mid.x}px,${mid.y}px)` },
@@ -1980,7 +1984,7 @@ async function playShot(b, screen, e, target, answer, viewer, speed) {
   const end = b.center(e.end.r, e.end.c);
   // до центра цели, до края поля или до перегородки
   let len = Math.abs(end.x - c0.x) + Math.abs(end.y - c0.y) - out;
-  if (!hit) len += b.cell / 2 + (e.wall ? 3 : 0);
+  if (!hit) len += e.wall ? b.face : b.cell / 2;
   const rot = { down: 0, up: 180, left: 90, right: -90 }[vd];
   const fx = b.fx;
   const tr = el(`<div class="tracer-rot" style="--tl:${tl}ms;transform:translate(${from.x - 5}px,${from.y}px) rotate(${rot}deg);height:${len}px"><div class="tracer ${hit ? '' : 'miss'}"></div></div>`);
