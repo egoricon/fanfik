@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#6C4CFF">
 <title>Двойники</title>
+<meta name="description" content="Пошаговая дуэль один на один по ссылке: три фишки, одна из них — ядро. Найди ядро друга раньше, чем он найдёт твоё.">
+<!-- Превью ссылки в мессенджерах -->
+<meta property="og:title" content="Двойники — дуэль на одну минуту">
+<meta property="og:description" content="Три фишки, одна из них — ядро. Найди ядро друга раньше, чем он найдёт твоё. Играется по ссылке, без регистрации.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Двойники">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Двойники — дуэль на одну минуту">
+<meta name="twitter:description" content="Три фишки, одна из них — ядро. Найди ядро друга раньше, чем он найдёт твоё.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -37,6 +47,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
   min-height: 100dvh; display: flex; flex-direction: column; gap: 14px;
   padding: max(28px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
 }
+/* У экранов, где справа вверху таймер или надпись, шапка начинается ниже кнопок в углу */
+.screen.hdr { padding-top: max(58px, calc(env(safe-area-inset-top) + 50px)); }
 .grow { flex: 1; }
 .row { display: flex; gap: 12px; align-items: center; }
 .h1 { font-weight: 900; font-size: 30px; line-height: 1.05; margin: 0; }
@@ -227,7 +239,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 .linkbox { background: var(--cell); border-radius: 12px; padding: 10px 12px; margin: 8px 0 12px; font-size: 15px; font-weight: 500; line-height: 1.35; word-break: break-all; user-select: text; -webkit-user-select: text; }
 .linkbox b { color: var(--bg); font-weight: 700; }
-.textbtn { align-self: center; color: var(--on-bg-2); font-weight: 700; font-size: 14px; padding: 10px; text-decoration: underline; text-underline-offset: 3px; }
+.textbtn { align-self: center; min-height: 44px; color: var(--on-bg-2); font-weight: 700; font-size: 14px; padding: 10px; text-decoration: underline; text-underline-offset: 3px; }
 .honesty { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--on-bg-2); }
 .honesty .ok { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--me); color: #fff; font-style: normal; font-weight: 900; display: flex; align-items: center; justify-content: center; }
 .cheatword { font-weight: 900; font-size: clamp(56px, 22vw, 86px); line-height: 1; color: #fff; text-shadow: 0 10px 0 var(--ink); animation: wobble 1.2s ease-in-out infinite; align-self: flex-start; margin: 8px 0; }
@@ -243,9 +255,108 @@ body.dimmed #app { opacity: .3; filter: blur(2px); pointer-events: none; }
 .sheet .handle { align-self: center; width: 48px; height: 5px; border-radius: 999px; background: var(--cell); margin-bottom: 8px; }
 .sheet p { margin: 0; font-size: 15px; line-height: 1.4; color: var(--muted); }
 .sheet .count { font-weight: 700; color: var(--ink); }
+/* Шапка шторки: за неё шторку можно утянуть вниз */
+.sheet [data-drag] { touch-action: none; }
+.sh-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.sh-head b { font-size: 22px; font-weight: 900; }
 .btn.lobbybtn { flex: 0 0 60px; background: var(--cell); color: var(--bg); font-weight: 800; font-size: 17px; box-shadow: 0 5px 0 var(--on-bg-3); margin-top: 6px; }
+/* Вторая кнопка на белом (карточка, шторка) */
+.btn.soft { background: var(--cell); color: var(--bg); font-weight: 800; font-size: 16px; box-shadow: 0 5px 0 var(--on-bg-3); flex: 0 0 auto; padding: 0 18px; }
+/* В карточке: основная кнопка «Отправить» и под ней текстовая «скопировать» */
+.card .textbtn { color: var(--bg); display: block; margin: 4px auto -6px; }
+.textbtn:disabled { opacity: .4; cursor: default; }
 @keyframes sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.boot-fail { opacity: 0; animation: pop-in 300ms ease 1.2s forwards; }
+/* Настройки: строка-переключатель во всю ширину (цель нажатия не меньше 44 px) */
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; padding: 8px 0; text-align: left; color: var(--ink); font-weight: 800; font-size: 17px; border-top: 1px solid var(--cell); }
+.toggle small { display: block; font-weight: 500; font-size: 13px; line-height: 1.3; color: var(--muted); margin-top: 2px; }
+.toggle i { flex: none; position: relative; width: 52px; height: 32px; border-radius: 999px; background: var(--cell); transition: background 150ms; }
+.toggle i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 0 rgba(42,27,107,.18); transition: transform 180ms var(--spring); }
+.toggle[aria-checked="true"] i { background: var(--me); }
+.toggle[aria-checked="true"] i::after { transform: translateX(20px); }
+.toggle:disabled { cursor: default; }
+.toggle:disabled i { opacity: .45; }
+/* Угол: кнопки-иконки сверху справа на всех экранах; прокручиваются вместе со страницей */
+.corner { position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 30; display: flex; gap: 2px; }
+.icbtn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex: none; }
+.icbtn > span { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.18); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 19px; line-height: 1; transition: transform 80ms, background 120ms; }
+.icbtn:active > span { transform: scale(.88); }
+.icbtn svg { width: 22px; height: 22px; }
+.sheet .icbtn > span { background: var(--cell); color: var(--ink); font-size: 16px; }
+body.dimmed .corner { opacity: .3; pointer-events: none; }
+body.cheat .corner .icbtn > span { background: rgba(42,27,107,.2); }
+/* Правила «Как играть»: шапка с таймером раунда стоит, карточки прокручиваются */
+.sheet.rules { max-height: calc(100dvh - max(20px, env(safe-area-inset-top))); padding-bottom: 0; gap: 0; }
+.sheet.rules .sh-head { flex: none; padding-bottom: 6px; }
+.sh-head .row { gap: 8px; }
+.rules-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px;
+  margin: 0 -24px; padding: 4px 24px max(24px, env(safe-area-inset-bottom)); user-select: text; -webkit-user-select: text; }
+.rules-body:focus-visible { outline: none; }
+.rclock { height: 32px; min-width: 58px; padding: 0 10px; border-radius: 999px; background: var(--me-soft); color: var(--ink); display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 16px; font-variant-numeric: tabular-nums; }
+.rclock.low { background: var(--shot); }
+.rclock[hidden] { display: none; }
+/* Схема справа, текст обтекает её и под ней идёт во всю ширину карточки */
+.rcard { display: flow-root; background: var(--cell); border-radius: 18px; padding: 12px 12px 12px 14px; }
+.rcard .mini, .rcard .seal { float: right; margin: 0 0 6px 12px; }
+.rcard h3 { margin: 0 0 4px; font-size: 17px; font-weight: 900; color: var(--ink); }
+.sheet .rcard p { font-size: 14px; line-height: 1.4; color: var(--ink); }
+.rcard .more { min-height: 44px; margin-bottom: -10px; display: inline-flex; align-items: center; color: var(--bg); font-weight: 800; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.rkeys { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--ink); }
+.rkeys td { padding: 4px 0; border-top: 1px solid rgba(110,98,168,.18); vertical-align: top; }
+.rkeys td:first-child { width: 1%; white-space: nowrap; padding-right: 14px; }
+.rkeys kbd, .rcard kbd { font-family: var(--mono); font-size: 12px; font-weight: 700; background: #fff; border-radius: 6px; padding: 1px 6px; box-shadow: 0 2px 0 var(--on-bg-3); }
+.rgestures { margin: 0 0 4px; padding-left: 18px; font-size: 14px; line-height: 1.4; color: var(--ink); display: flex; flex-direction: column; gap: 3px; }
+.rules-foot { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+
+/* Схема 5×5 в карточке правил: те же цвета и фигуры, что на доске, только мельче. Верх — сторона соперника. */
+.mini { --mc: 22px; --mg: 3px; --pad: 5px; --st: calc(var(--mc) + var(--mg));
+  flex: none; position: relative; display: grid; grid-template-columns: repeat(5, var(--mc)); grid-auto-rows: var(--mc); gap: var(--mg);
+  padding: var(--pad); background: #fff; border-radius: 12px; box-shadow: 0 3px 0 var(--on-bg-3); }
+.mini > i { border-radius: 5px; background: var(--cell); }
+.mini > i.burn { background: #FFB26B; }
+.mini .it { position: absolute; left: calc(var(--pad) + var(--c) * var(--st)); top: calc(var(--pad) + var(--r) * var(--st));
+  width: var(--mc); height: var(--mc); display: flex; align-items: center; justify-content: center; }
+.mini .d { position: relative; width: 82%; height: 82%; border-radius: 50%; border: 2px solid #fff; box-sizing: border-box; }
+.mini .d.me { background: var(--me); box-shadow: 0 2px 0 var(--me-deep); }
+.mini .d.op { background: var(--op); box-shadow: 0 2px 0 var(--op-deep); }
+.mini .d.dead { background: var(--cell); border: 2px dashed var(--on-bg-3); box-shadow: none; }
+.mini .d.faint { opacity: .45; }
+.mini .d b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 900; }
+.mini .d.dead b { color: var(--on-bg-3); }
+.mini .d .core { position: absolute; top: -6px; right: -6px; width: 7px; height: 7px; box-sizing: content-box; background: var(--shot); border: 2px solid #fff; border-radius: 2px; transform: rotate(45deg); }
+.mini .d .core.next { background: #fff; border-color: var(--shot-deep); border-style: dashed; }
+.mini .stp { border-radius: 5px; background: var(--me-soft); border: 2px dashed var(--me); box-sizing: border-box; color: var(--me-deep); font-weight: 900; font-size: 12px; }
+.mini .gh::before { content: ''; width: 74%; height: 74%; border-radius: 50%; background: rgba(39,200,160,.18); border: 2px dashed var(--me); box-sizing: border-box; }
+.mini .ring::before { content: ''; width: 100%; height: 100%; border-radius: 50%; border: 2px dashed var(--shot-deep); box-sizing: border-box; }
+.mini .x { color: var(--op-deep); font-weight: 900; font-size: 15px; }
+.mini .ar { font-weight: 900; font-size: 14px; line-height: 1; z-index: 2; text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff; }
+.mini .ar.me { color: var(--me-deep); } .mini .ar.op { color: var(--op-deep); } .mini .ar.sw { color: var(--shot-deep); }
+.mini .tag { align-items: flex-end; z-index: 3; }
+.mini .tag span { transform: translateY(7px); background: var(--shot); color: var(--ink); font-weight: 900; font-size: 9px; line-height: 1; border-radius: 999px; padding: 2px 4px; border: 1.5px solid #fff; white-space: nowrap; }
+.mini .sl { position: absolute; }
+.mini .sl.v { border-left: 3px dotted var(--shot-deep); }
+.mini .sl.h { border-top: 3px dotted var(--shot-deep); }
+.mini .wl { position: absolute; background: var(--bg-deep); border-radius: 3px; box-shadow: 0 2px 0 var(--ink); z-index: 1; }
+/* «Честность»: вместо поля — печать с отпечатком */
+.seal { flex: none; width: calc(5 * 22px + 4 * 3px + 10px); padding: 10px; background: #fff; border-radius: 12px; box-shadow: 0 3px 0 var(--on-bg-3);
+  display: flex; flex-direction: column; gap: 4px; font-size: 11px; line-height: 1.3; color: var(--muted); }
+.seal .mono { color: var(--ink); font-size: 11px; }
+.seal .okc { color: var(--me-deep); font-weight: 800; }
+@media (max-width: 370px) { .mini { --mc: 18px; } .seal { width: calc(5 * 18px + 4 * 3px + 10px); } }
+
+/* Вход гостя по ссылке */
+.invite .pill { margin-top: 4px; }
+.istatus { font-size: 14px; line-height: 1.4; color: var(--on-bg-2); display: flex; gap: 10px; align-items: center; min-height: 24px; }
+/* Разовая подсказка (скан, «упёрся»): как подсказка 1-го раунда, без хвостика; кликабельна целиком */
+.hint.tip { width: 100%; text-align: left; }
+.hint.tip::after { display: none; }
+.firewarn { width: 100%; text-align: left; display: block; }
+.firewarn u { font-weight: 800; text-underline-offset: 3px; white-space: nowrap; }
+/* Заставка до загрузки модулей; объяснение — только если модули не загрузились */
+.boot { justify-content: center; }
+.boot-fail { display: none; }
+.boot.failed .boot-fail { display: flex; flex-direction: column; gap: 14px; animation: pop-in 300ms ease; }
+.boot.failed .boot-wait { display: none; }
 .toast { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); background: var(--ink); color: #fff; font-weight: 700; font-size: 15px; padding: 10px 16px; border-radius: 14px; z-index: 50; animation: pop-in 250ms var(--spring); max-width: calc(100vw - 48px); text-align: center; }
 
 @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .4; transform: scale(.7) } }
@@ -278,11 +389,45 @@ body.dimmed #app { opacity: .3; filter: blur(2px); pointer-events: none; }
 .actions .btn.act { flex: 0 0 auto; min-width: 76px; padding: 0 12px; flex-direction: column; line-height: 1.1; font-size: 15px; }
 .actions .btn.act small { font-size: 12px; font-weight: 700; opacity: .7; }
 
-/* Меньше движения: без тряски, покачивания и замедления; трассер и надпись остаются */
-@media (prefers-reduced-motion: reduce) {
-  .chip, .disc.danger, .disc.swapflick, .disc .core.next, .board-wrap.shaking, .dot { animation: none !important; }
-  .slowpill { display: none; }
-}
+/* Приказ на фишке: бейдж шага (мятный) и выстрела (жёлтый); появляется пружинкой, исчезает «сдуваясь» */
+.disc .pbadge { position: absolute; bottom: -7px; width: clamp(20px, calc(var(--cs) * .3), 30px); height: clamp(20px, calc(var(--cs) * .3), 30px);
+  border-radius: 50%; border: 2px solid #fff; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  font-style: normal; font-weight: 900; font-size: clamp(12px, calc(var(--cs) * .17), 17px); line-height: 1; animation: badge-in 260ms var(--spring) both; }
+.disc .pbadge.step { right: -7px; background: var(--me-deep); color: #fff; }
+.disc .pbadge.shot { left: -7px; background: var(--shot); color: var(--ink); }
+.disc .pbadge.gone { animation: badge-out 180ms ease-in both; }
+@keyframes badge-in { from { transform: scale(0) } to { transform: scale(1) } }
+@keyframes badge-out { to { transform: scale(0); opacity: 0 } }
+.m.ghost::before { animation: ghost 1.4s ease-in-out infinite; }
+@keyframes ghost { 0%,100% { transform: scale(.92); opacity: .7 } 50% { transform: scale(1.02); opacity: 1 } }
+
+/* «Готово!» в конце раунда: пульс (за 5 с чаще); подпись второй строкой — «все стоят» или отсчёт */
+.btn.ready { flex-direction: column; line-height: 1.1; }
+.btn.ready small { font-size: 13px; font-weight: 800; opacity: .75; font-variant-numeric: tabular-nums; }
+.btn.ready.urge { animation: urge 1s ease-in-out infinite; }
+.btn.ready.urge.fast { animation-duration: .5s; }
+/* Свечение размытое и светлое: полупрозрачное жёлтое кольцо на фиолетовом выглядит грязным */
+@keyframes urge { 0%,100% { transform: scale(1); box-shadow: 0 5px 0 var(--shot-deep), 0 0 0 0 rgba(255,222,120,0) }
+  50% { transform: scale(1.06); box-shadow: 0 5px 0 var(--shot-deep), 0 0 22px 6px rgba(255,222,120,.95) } }
+
+/* Отклик на нажатие: плашки, режимы и текстовые кнопки чуть проседают */
+.tile, .mode, .textbtn, .hint { transition: transform 80ms, box-shadow 80ms; }
+.tile:active:not(:disabled), .mode:active { transform: translateY(3px) scale(.98); box-shadow: none; }
+.textbtn:active { transform: scale(.96); }
+.hint:active { transform: translateY(2px); }
+/* Фокус с клавиатуры виден (жёлтый заметен и на фиолетовом, и на белом) */
+:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--shot); outline-offset: 3px; }
+.icbtn:focus-visible { outline-offset: 0; }
+.toggle:focus-visible { outline-offset: 2px; border-radius: 8px; }
+
+/* Меньше движения (настройка, по умолчанию как в системе): без тряски, покачиваний, пульса и замедления;
+   трассер и надписи остаются */
+body.reduced .chip, body.reduced .disc.danger, body.reduced .disc.swapflick, body.reduced .disc .core.next,
+body.reduced .board-wrap.shaking, body.reduced .dot, body.reduced .disc .pbadge, body.reduced .m.ghost::before,
+body.reduced .sheet, body.reduced .toast, body.reduced .hint { animation: none !important; }
+body.reduced .slowpill { display: none; }
+body.reduced .btn.ready.urge { animation: none; background: var(--fire); color: #fff; box-shadow: 0 5px 0 var(--fire-deep); }
 
 /* Колонки экрана: на телефоне их нет (display: contents), всё идёт одним столбцом */
 .col { display: contents; }
@@ -298,13 +443,17 @@ body.dimmed #app { opacity: .3; filter: blur(2px); pointer-events: none; }
   .btn:hover:not(:disabled) { filter: brightness(1.06); }
   .tile:not(.active):not(:disabled):hover, .mode:not(.on):hover { background: rgba(255,255,255,.24); }
   .textbtn:hover { color: #fff; }
+  .icbtn:hover > span { background: rgba(255,255,255,.3); }
+  .sheet .icbtn:hover > span { background: #E2D9FF; }
+  .btn.soft:hover { filter: brightness(.98); }
 }
 
 /* ПК: широкий экран — доска слева, панель справа */
 @media (min-width: 900px) and (min-height: 600px) {
   /* Экран с доской по высоте равен доске и стоит по центру окна */
   #app { max-width: 1160px; display: flex; flex-direction: column; justify-content: center; }
-  .screen { padding: 40px 48px; }
+  .screen, .screen.hdr { padding: 64px 48px 40px; }
+  .corner { top: 16px; right: 20px; }
   .screen.duo { min-height: 0; }
   .screen:not(.duo):not(.lobby):not(.split) { max-width: 500px; margin: 0 auto; }
   .desk { display: block; }
@@ -341,29 +490,91 @@ body.dimmed #app { opacity: .3; filter: blur(2px); pointer-events: none; }
   .sheet-wrap { align-items: center; }
   .sheet { border-radius: 32px; max-width: 440px; padding: 24px 28px; }
   .sheet .handle { display: none; }
+  .sheet.rules { max-width: 580px; max-height: min(88vh, 860px); padding-bottom: 0; }
+  .rules-body { margin: 0 -28px; padding: 4px 28px 28px; }
+  .mini { --mc: 24px; }
+  .seal { width: calc(5 * 24px + 4 * 3px + 10px); }
 }
 </style>
 </head>
 <body>
 <main id="app">
-  <!-- Запасной экран: виден, только если модули не загрузились (файл открыт двойным кликом или рядом нет rules.js / crypto.js). -->
-  <section class="screen boot-fail">
+  <!-- Заставка, пока грузятся модули. Если они не загрузились (файл открыт двойным кликом
+       или рядом нет rules.js / crypto.js), вместо «Подключаемся…» появляется объяснение. -->
+  <section class="screen boot">
     <h1 class="logo">ДВОЙ<br>НИКИ</h1>
-    <p class="lead">Игра не запустилась.</p>
-    <p class="small">Браузер не загружает модули, если открыть файл двойным кликом (адрес начинается с <b>file://</b>). Запусти локальный сервер в папке, где рядом лежат <b>index.html</b>, <b>rules.js</b> и <b>crypto.js</b>:</p>
-    <div class="plate mono" style="font-size:14px">python -m http.server 8000</div>
-    <p class="small">и открой <b>http://localhost:8000</b>. Или просто открой ссылку на GitHub Pages.</p>
+    <div class="row boot-wait"><i class="dot shot"></i><b style="font-size:20px;font-weight:800">Подключаемся…</b></div>
+    <div class="boot-fail">
+      <p class="lead">Игра не запустилась.</p>
+      <p class="small">Браузер не загружает модули, если открыть файл двойным кликом (адрес начинается с <b>file://</b>). Запусти локальный сервер в папке, где рядом лежат <b>index.html</b>, <b>rules.js</b> и <b>crypto.js</b>:</p>
+      <div class="plate mono" style="font-size:14px">python -m http.server 8000</div>
+      <p class="small">и открой <b>http://localhost:8000</b>. Или просто открой ссылку на GitHub Pages.</p>
+    </div>
   </section>
 </main>
+<script>
+  // Обычный скрипт: работает, даже когда модули не загрузились.
+  (function () {
+    var boot = document.querySelector('.boot');
+    var fail = function () { if (boot.isConnected) boot.classList.add('failed'); };
+    if (location.protocol === 'file:') fail();
+    else setTimeout(fail, 10000);
+  })();
+</script>
 
-<script type="module">
+<!-- onerror: не загрузился rules.js, crypto.js или net.js — сразу объяснение вместо заставки -->
+<script type="module" onerror="document.querySelector('.boot')?.classList.add('failed')">
 import * as R from './rules.js';
 import { makeSalt, commit } from './crypto.js';
 import { createHost, createGuest, roomFromUrl } from './net.js';
 
 // ---------- утилиты ----------
 const app = document.getElementById('app');
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Настройки устройства: звук, вибрация, «меньше анимации» (по умолчанию — как в системе).
+// Хранятся в localStorage; без хранилища (приватный режим) работают значения по умолчанию.
+const SETTINGS_KEY = 'dv-settings';
+const settings = { sound: true, vibro: true, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches };
+try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch { /* нет хранилища */ }
+let REDUCED = false;
+function applySettings() {
+  REDUCED = !!settings.reduced;
+  document.body.classList.toggle('reduced', REDUCED);
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* нет хранилища */ }
+  applySettings();
+}
+applySettings();
+
+// Прогресс на устройстве: сколько партий начато (подсказки 1-го раунда — только в первых двух,
+// экран входа гостя — только тому, кто ещё не играл) и какие разовые подсказки уже показаны.
+const PROGRESS_KEY = 'dv-progress';
+const progress = { games: 0, tips: {} };
+try { Object.assign(progress, JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}); } catch { /* нет хранилища */ }
+if (!Number.isInteger(progress.games)) progress.games = 0;
+if (!progress.tips || typeof progress.tips !== 'object') progress.tips = {};
+function saveProgress() {
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch { /* нет хранилища */ }
+}
+function countGame() {
+  progress.games++;
+  saveProgress();
+}
+// Разовая подсказка: true, если на этом устройстве её ещё не показывали (и сразу отмечает показанной).
+function firstTime(tip) {
+  if (progress.tips[tip]) return false;
+  progress.tips[tip] = true;
+  saveProgress();
+  return true;
+}
+
+// Вибрация: Android; на iPhone API нет — молча пропускаем. «Пропустить» в повторе глушит её, как и звук.
+const CAN_VIBRATE = typeof navigator.vibrate === 'function';
+function buzz(pattern) {
+  if (!settings.vibro || !CAN_VIBRATE || RP.skip) return;
+  try { navigator.vibrate(pattern); } catch { /* нет вибрации */ }
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const ARROW = { up: '↑', down: '↓', left: '←', right: '→' };
@@ -393,10 +604,190 @@ const KEY_DIR = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRigh
 let keys = null;
 function setKeys(screen, fn) { keys = { screen, fn }; }
 addEventListener('keydown', (ev) => {
-  if (!keys?.screen.isConnected || ev.ctrlKey || ev.metaKey || ev.altKey || ev.repeat) return;
-  if (document.body.classList.contains('dimmed')) return;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  // «?» и H открывают правила на любом экране и закрывают их (раскладка любая: «?» — по символу, H — по месту клавиши).
+  const help = !ev.repeat && (ev.key === '?' || ev.code === 'KeyH');
+  // Открыта шторка: клавиши игре не достаются; Esc закрывает шторку.
+  if (panel) {
+    if (ev.code === 'Escape' && panel.closable && !ev.repeat) { ev.preventDefault(); closePanel(); }
+    else if (help && panel.kind === 'rules') { ev.preventDefault(); closePanel(); }
+    return;
+  }
+  if (help) { ev.preventDefault(); openRules(); return; }
+  if (!keys?.screen.isConnected || ev.repeat) return;
   if (keys.fn(ev) !== false) ev.preventDefault();
 });
+
+// ---------- шторки ----------
+// Одна шторка за раз поверх экрана. 'disconnect' приходит от сети, и закрывает её только сеть.
+// Остальные ('confirm', 'settings', 'rules') закрываются крестиком, тапом по фону, свайпом вниз за шапку,
+// Esc и системной «Назад».
+let panel = null; // { kind, wrap, closable, timer, back }
+function dropPanel() {
+  if (!panel) return;
+  const { back } = panel;
+  clearInterval(panel.timer);
+  panel.wrap.remove();
+  panel = null;
+  document.body.classList.remove('dimmed');
+  if (back?.isConnected) back.focus({ preventScroll: true }); // фокус возвращается туда, откуда открыли
+}
+function openPanel(kind, inner, { closable = true, label = '' } = {}) {
+  dropPanel();
+  document.body.classList.add('dimmed');
+  const wrap = el(`<div class="sheet-wrap"><div class="sheet" role="dialog" aria-modal="true" aria-label="${label}">${closable ? '<i class="handle" data-drag></i>' : ''}${inner}</div></div>`);
+  document.body.append(wrap);
+  const sheet = wrap.firstElementChild;
+  panel = { kind, wrap, closable, timer: null, back: document.activeElement };
+  // Фокус — на безопасную кнопку шторки (data-focus), чтобы Enter не сделал ничего необратимого.
+  sheet.querySelector('[data-focus]')?.focus({ preventScroll: true });
+  if (closable) {
+    wrap.addEventListener('click', (ev) => { if (ev.target === wrap) closePanel(); });
+    sheet.querySelectorAll('[data-close]').forEach((x) => (x.onclick = () => closePanel()));
+    dragToClose(sheet);
+  }
+  syncTrap();
+  return sheet;
+}
+// kinds — закрыть, только если открыта шторка этого вида.
+function closePanel(...kinds) {
+  if (!panel || (kinds.length && !kinds.includes(panel.kind))) return false;
+  dropPanel();
+  syncTrap();
+  return true;
+}
+// Свайп вниз за шапку закрывает шторку; короткий свайп — шторка пружиной возвращается.
+function dragToClose(sheet) {
+  let y0 = null, dy = 0;
+  sheet.addEventListener('pointerdown', (ev) => {
+    if (!ev.target.closest('[data-drag]') || ev.target.closest('button')) return;
+    y0 = ev.clientY;
+    dy = 0;
+    sheet.setPointerCapture(ev.pointerId);
+    sheet.style.transition = 'none';
+  });
+  sheet.addEventListener('pointermove', (ev) => {
+    if (y0 === null) return;
+    dy = Math.max(0, ev.clientY - y0);
+    sheet.style.transform = dy ? `translateY(${dy}px)` : '';
+  });
+  const end = () => {
+    if (y0 === null) return;
+    y0 = null;
+    if (dy > 70) { closePanel(); return; }
+    sheet.style.transition = 'transform 200ms var(--spring)';
+    sheet.style.transform = '';
+  };
+  sheet.addEventListener('pointerup', end);
+  sheet.addEventListener('pointercancel', end);
+}
+
+// ---------- системная «Назад» ----------
+// Пока идёт партия или открыта шторка, над страницей лежит одна запись-ловушка (адрес тот же, ?room= на месте).
+// «Назад» снимает её: закрываем шторку или спрашиваем «Выйти из партии?», и ловушка ставится снова.
+// Вне партии ловушки нет, и «Назад» уходит со страницы как обычно.
+let playing = null; // 'net' | 'hot' | null — идёт партия
+const nav = { trapped: false, skip: 0, leaving: false };
+if (history.state?.dvTrap) history.replaceState(null, ''); // страницу перезагрузили на записи-ловушке
+function syncTrap() {
+  if (nav.leaving) return; // уже уходим на новую комнату: «Назад» из истории отменил бы этот переход
+  const want = !!playing || !!panel?.closable;
+  if (want && !nav.trapped) {
+    history.pushState({ dvTrap: true }, '');
+    nav.trapped = true;
+  } else if (!want && nav.trapped) {
+    nav.trapped = false;
+    nav.skip++;
+    history.back();
+  }
+}
+function setPlaying(v) {
+  playing = v;
+  syncTrap();
+}
+addEventListener('popstate', () => {
+  if (nav.skip) { nav.skip--; return; } // это мы сами сняли ловушку
+  if (!nav.trapped) return;
+  nav.trapped = false;
+  if (panel?.closable) closePanel();
+  else if (playing && !panel) askLeave();
+  syncTrap();
+});
+// Запись, добавленную без касания страницы, Chrome при «Назад» пропускает; после первого касания — уже нет.
+addEventListener('pointerdown', syncTrap, { capture: true, passive: true });
+// Закрыть вкладку посреди сетевой партии — только с подтверждением браузера.
+addEventListener('beforeunload', (ev) => {
+  if (playing !== 'net') return;
+  ev.preventDefault();
+  ev.returnValue = '';
+});
+
+// «Выйти из партии?»: по сети соперник получит победу (как при кнопке выхода), на одном экране — просто в меню.
+function askLeave() {
+  const net = playing === 'net';
+  const sheet = openPanel('confirm', `<div class="sh-head" data-drag><b>Выйти из партии?</b></div>
+    ${net ? '<p>Соперник получит победу.</p>' : ''}
+    <div class="actions"><button class="btn soft" id="quit">Выйти</button><button class="btn main" id="stay" data-focus>Остаться</button></div>`, { label: 'Выйти из партии?' });
+  sheet.querySelector('#stay').onclick = () => closePanel();
+  sheet.querySelector('#quit').onclick = () => {
+    closePanel();
+    if (net) newRoom();
+    else showLobby();
+  };
+}
+
+// ---------- экран не гаснет ----------
+// Во время партии и в лобби хоста: у хоста погасший экран — уснувший судья, а друг войдёт в комнату,
+// только пока страница открыта. Нет поддержки или отказ — молча без неё.
+const wake = { want: false, lock: null, busy: false };
+async function keepAwake(on) {
+  wake.want = on;
+  if (!on) {
+    const l = wake.lock;
+    wake.lock = null;
+    l?.release().catch(() => {});
+    return;
+  }
+  if (wake.lock || wake.busy || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+  wake.busy = true;
+  try {
+    const l = await navigator.wakeLock.request('screen');
+    if (wake.want) {
+      wake.lock = l;
+      l.addEventListener('release', () => { if (wake.lock === l) wake.lock = null; });
+    } else l.release().catch(() => {});
+  } catch { /* не дали — играем без неё */ }
+  wake.busy = false;
+}
+// Скрытая вкладка теряет блокировку; вернулись — просим снова.
+document.addEventListener('visibilitychange', () => { if (wake.want) keepAwake(true); });
+
+// ---------- смена экрана ----------
+// Новый экран коротко проявляется (без анимации при «Меньше анимации»).
+// title — заголовок вкладки: виден, когда вкладка в фоне («Твой ход · Двойники»).
+// help — какая карточка правил первой, если открыть «?» на этом экране.
+let helpAt = 'goal';
+function mount(screen, { awake = true, title = '', help = 'goal' } = {}) {
+  app.replaceChildren(screen);
+  helpAt = help;
+  if (!REDUCED && screen.animate) {
+    screen.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' });
+  }
+  keepAwake(awake);
+  setTitle(title);
+  syncTrap();
+  return screen;
+}
+function setTitle(text) { document.title = text ? `${text} · Двойники` : 'Двойники'; }
+
+// ---------- поделиться ----------
+// Меню системы (Telegram, WhatsApp…). Нет Web Share или не вышло — копируем; отмену пользователем не трогаем.
+const CAN_SHARE = typeof navigator.share === 'function';
+async function shareOr(data, fallback) {
+  try { await navigator.share(data); }
+  catch (e) { if (e?.name !== 'AbortError') fallback(); }
+}
+const GAME_URL = location.origin + location.pathname;
 
 function groupHash(hex) {
   return hex.slice(0, 16).match(/.{4}/g).join('·');
@@ -415,6 +806,7 @@ function audio() {
 addEventListener('pointerdown', audio, { passive: true });
 
 function tone({ type = 'sine', f0, f1 = f0, dur, gain = 0.2, at = 0 }) {
+  if (!settings.sound || RP.skip) return;
   const ctx = audio();
   if (!ctx) return;
   const t0 = ctx.currentTime + at;
@@ -432,6 +824,7 @@ function tone({ type = 'sine', f0, f1 = f0, dur, gain = 0.2, at = 0 }) {
 // Шум через полосовой фильтр: хлопок взрыва и треск огня.
 let noiseBuf = null;
 function noise({ dur, gain = 0.2, freq = 1200, q = 0.8, at = 0 }) {
+  if (!settings.sound || RP.skip) return;
   const ctx = audio();
   if (!ctx) return;
   if (!noiseBuf) {
@@ -477,11 +870,181 @@ const sfx = {
   draw: () => [440, 440].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.2, gain: 0.14, at: i * 0.2 })),
 };
 
+// ---------- угол: настройки и правила ----------
+// Шестерёнка из двух колец: зубцы — пунктир толстой обводки.
+const GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="8.6" stroke-width="3.4" stroke-dasharray="3.4 3.355"/><circle cx="12" cy="12" r="5.6" stroke-width="3.6"/></svg>';
+const corner = el(`<div class="corner"><button class="icbtn" id="gear" aria-label="Настройки"><span>${GEAR}</span></button><button class="icbtn" id="help" aria-label="Как играть"><span>?</span></button></div>`);
+document.body.prepend(corner);
+corner.querySelector('#gear').onclick = openSettings;
+corner.querySelector('#help').onclick = () => openRules();
+
+// Настройки запоминаются на устройстве. Вибрация — только на телефоне: на iPhone браузер её не умеет.
+function openSettings() {
+  sfx.tap();
+  const rows = [
+    { k: 'sound', name: 'Звук' },
+    ...(FINE ? [] : [{ k: 'vibro', name: 'Вибрация', note: CAN_VIBRATE ? '' : 'На iPhone браузер не умеет вибрировать', off: !CAN_VIBRATE }]),
+    { k: 'reduced', name: 'Меньше анимации', note: 'Без тряски, пульса и замедления' },
+  ];
+  const sheet = openPanel('settings', `<div class="sh-head" data-drag><b>Настройки</b><button class="icbtn" data-close data-focus aria-label="Закрыть"><span>✕</span></button></div>
+    ${rows.map((x) => `<button class="toggle" role="switch" data-k="${x.k}" aria-checked="${!x.off && !!settings[x.k]}"${x.off ? ' disabled' : ''}>
+      <span>${x.name}${x.note ? `<small>${x.note}</small>` : ''}</span><i></i></button>`).join('')}`, { label: 'Настройки' });
+  sheet.querySelectorAll('.toggle:not(:disabled)').forEach((t) => (t.onclick = () => {
+    const k = t.dataset.k;
+    settings[k] = !settings[k];
+    t.setAttribute('aria-checked', String(settings[k]));
+    saveSettings();
+    if (k === 'sound' && settings.sound) sfx.tap();
+    if (k === 'vibro') buzz(30);
+  }));
+}
+
+// ---------- правила «Как играть» ----------
+// Схема 5×5 для карточки: те же цвета и фигуры, что на доске, только мельче; верх — сторона соперника.
+// Фигуры (r, c — строка и колонка на экране):
+//   ['me'|'op', r, c, { n, core, next, dead, faint }] — фишка (n — надпись на ней); ['step', r, c, '↑'] — клетка шага;
+//   ['ghost', r, c] — где фишка будет после шага; ['arrow', r, c, dir, 'me'|'op'|'sw', inCell] — стрелка на границе клетки
+//   (inCell — посередине клетки);
+//   ['x', r, c] — сюда не пустили; ['ring', r, c] — попадание или скан; ['tag', r, c, текст] — подпись под фишкой;
+//   ['shot', r, c, dir, n, toWall] — линия выстрела от края клетки на n клеток: до центра цели или до перегородки;
+//   ['wall', r, c, 'h'|'v', len] — перегородка под клеткой ('h') или справа от неё ('v') длиной len клеток.
+const UNIT = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+function mini(things, { burn = false } = {}) {
+  const cells = Array.from({ length: 25 }, (_, i) => `<i${burn && R.isEdge(Math.floor(i / 5), i % 5) ? ' class="burn"' : ''}></i>`).join('');
+  const at = (r, c, extra = '') => `style="--r:${r};--c:${c};${extra}"`;
+  const x0 = (c) => `var(--pad) + ${c} * var(--st)`; // левый край клетки
+  const y0 = (r) => `var(--pad) + ${r} * var(--st)`; // верхний край клетки
+  const shapes = things.map(([t, r, c, a, b, e]) => {
+    switch (t) {
+      case 'me': case 'op': {
+        const o = a || {};
+        const label = o.dead ? '✕' : o.n ?? '';
+        return `<div class="it" ${at(r, c)}><div class="d ${t}${o.dead ? ' dead' : ''}${o.faint ? ' faint' : ''}">${label !== '' ? `<b>${label}</b>` : ''}${o.core ? '<i class="core"></i>' : o.next ? '<i class="core next"></i>' : ''}</div></div>`;
+      }
+      case 'step': return `<div class="it stp" ${at(r, c)}>${a}</div>`;
+      case 'ghost': return `<div class="it gh" ${at(r, c)}></div>`;
+      case 'ring': return `<div class="it ring" ${at(r, c)}></div>`;
+      case 'x': return `<div class="it x" ${at(r, c)}>✕</div>`;
+      case 'tag': return `<div class="it tag" ${at(r, c)}><span>${a}</span></div>`;
+      case 'arrow': {
+        const [dx, dy] = e ? [0, 0] : UNIT[a];
+        return `<div class="it ar ${b}" ${at(r, c, `transform:translate(calc(var(--st) * ${dx / 2}), calc(var(--st) * ${dy / 2}))`)}>${ARROW[a]}</div>`;
+      }
+      case 'shot': {
+        const len = e ? `${b} * var(--st) + var(--mg) / 2` : `${b} * var(--st) - var(--mc) / 2`;
+        const mid = (p) => `calc(${p} + var(--mc) / 2 - 1.5px)`;
+        if (a === 'up') return `<div class="sl v" style="left:${mid(x0(c))};top:calc(${y0(r)} - (${len}));height:calc(${len})"></div>`;
+        if (a === 'down') return `<div class="sl v" style="left:${mid(x0(c))};top:calc(${y0(r)} + var(--mc));height:calc(${len})"></div>`;
+        if (a === 'left') return `<div class="sl h" style="top:${mid(y0(r))};left:calc(${x0(c)} - (${len}));width:calc(${len})"></div>`;
+        return `<div class="sl h" style="top:${mid(y0(r))};left:calc(${x0(c)} + var(--mc));width:calc(${len})"></div>`;
+      }
+      case 'wall': {
+        const n = b || 1;
+        const across = (p) => `calc(${p} + var(--mc) + var(--mg) / 2 - 2.5px)`;
+        const along = `calc(${n} * var(--st) - var(--mg) + 2px)`;
+        return a === 'h'
+          ? `<div class="wl" style="top:${across(y0(r))};left:calc(${x0(c)} - 1px);width:${along};height:5px"></div>`
+          : `<div class="wl" style="left:${across(x0(c))};top:calc(${y0(r)} - 1px);height:${along};width:5px"></div>`;
+      }
+    }
+    return '';
+  });
+  return `<div class="mini" aria-hidden="true">${cells}${shapes.join('')}</div>`;
+}
+
+// Карточки правил. Тексты совпадают с README («Как играть»): меняешь здесь — поправь и там.
+// Первые пять — короткая версия для гостя, который пришёл по ссылке.
+const KEY_ROWS = [
+  ['<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>', 'выбрать фишку'],
+  ['<kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd>', 'шаг'],
+  ['<kbd>Shift</kbd> + стрелка', 'выстрел'],
+  ['<kbd>0</kbd> или <kbd>Backspace</kbd>', 'стоять'],
+  ['<kbd>S</kbd>', 'скан, затем номер чужой фишки'],
+  ['<kbd>W</kbd>', 'подмена, затем номер своей фишки'],
+  ['<kbd>Esc</kbd>', 'снять выбор, закрыть окно'],
+  ['<kbd>Enter</kbd>', 'готово, дальше'],
+  ['<kbd>R</kbd> · <kbd>Пробел</kbd>', 'повтор ещё раз · пропустить'],
+  ['<kbd>?</kbd> или <kbd>H</kbd>', 'эти правила'],
+];
+const RULES = [
+  { id: 'goal', title: 'Цель',
+    text: 'Три одинаковые фишки, одна из них — ядро, и какая, знаешь только ты. Сбей ядро соперника раньше, чем он твоё; оба ядра в одном раунде — ничья.',
+    pic: mini([['op', 0, 2, { n: '?' }], ['op', 0, 3, { n: '?' }], ['op', 0, 4, { n: '?' }], ['me', 4, 0, { n: 1 }], ['me', 4, 1, { n: 2, core: true }], ['me', 4, 2, { n: 3 }]]) },
+  { id: 'round', title: 'Раунд',
+    text: '30 секунд, оба планируют одновременно: каждой фишке — шаг на соседнюю клетку или «стоять». Плюс одно действие на весь раунд — выстрел, скан или подмена. Не успел нажать «Готово!» — все фишки стоят.',
+    pic: mini([['op', 0, 3], ['step', 1, 2, '↑'], ['step', 3, 2, '↓'], ['step', 2, 1, '←'], ['step', 2, 3, '→'], ['me', 2, 2], ['me', 4, 0]]) },
+  { id: 'move', title: 'Движение',
+    text: 'Сначала ходят все, потом стреляют. Две фишки в одну клетку, обмен местами, шаг в клетку стоящей фишки — такие фишки остаются на месте.',
+    pic: mini([['op', 1, 2], ['arrow', 1, 2, 'down', 'op'], ['x', 2, 2], ['me', 3, 2], ['arrow', 3, 2, 'up', 'me'], ['me', 4, 4], ['arrow', 4, 4, 'left', 'me'], ['me', 4, 3]]) },
+  { id: 'shot', title: 'Выстрел',
+    text: 'Летит по прямой с клетки после шага и бьёт первую фишку на пути, даже свою. Выстрелы одновременны: сбитая фишка всё равно стреляет. Владелец сбитой фишки раскрывает, ядро это или пустышка.',
+    pic: mini([['op', 0, 1], ['op', 1, 1], ['ring', 1, 1], ['shot', 3, 1, 'up', 2], ['ghost', 3, 1], ['me', 4, 1], ['arrow', 4, 1, 'up', 'me'], ['op', 1, 3]]) },
+  { id: 'scan', title: 'Скан',
+    text: 'Один раз за партию: тайно узнаёшь, ядро ли одна фишка соперника. Ответ видишь только ты.',
+    pic: mini([['op', 0, 2], ['op', 1, 3], ['ring', 1, 3], ['tag', 1, 3, 'ЯДРО'], ['op', 0, 4], ['me', 3, 1], ['me', 4, 2]]) },
+  { id: 'walls', title: 'Перегородки',
+    text: 'На поле две перегородки между клетками, каждую партию на новом месте. Через перегородку не шагнуть, а пуля в неё упирается: за ней можно спрятаться.',
+    pic: mini([['wall', 1, 1, 'h', 2], ['wall', 2, 3, 'v', 2], ['op', 1, 2], ['shot', 4, 2, 'up', 2, true], ['me', 4, 2], ['me', 3, 3], ['arrow', 3, 3, 'right', 'me'], ['x', 3, 4]]) },
+  { id: 'swap', title: 'Подмена ядра',
+    text: 'Раз за партию вместо выстрела или скана ядро тайно переезжает на другую твою живую фишку, ещё до шагов. Соперник увидит, что подмена была, но не узнает куда; его старый скан мог устареть.',
+    pic: mini([['op', 0, 2], ['op', 0, 4], ['me', 3, 1, { core: true }], ['arrow', 3, 2, 'right', 'sw', true], ['me', 3, 3, { next: true }], ['me', 4, 2]]) },
+  { id: 'fire', title: 'Огонь',
+    text: 'С 7-го раунда горит край поля: после выстрелов сгорают все фишки на краевых клетках. После 10-го раунда — ничья.',
+    pic: mini([['op', 0, 3, { dead: true }], ['op', 1, 2], ['me', 3, 2], ['me', 4, 0, { dead: true }], ['me', 2, 1]], { burn: true }) },
+  { id: 'honest', title: 'Честность',
+    text: 'Ядро и приказы заранее запечатаны отпечатком, а в конце партии игра проверяет, что никто не соврал. Соврал — экран «ЧИТЕР!».',
+    more: '<a class="more" href="https://github.com/egoricon/fanfik#честность-commit-reveal" target="_blank" rel="noopener">Как это устроено →</a>',
+    pic: '<div class="seal" aria-hidden="true"><span>ядро + соль → отпечаток</span><span class="mono">9f2c·41be·07aa</span><span>конец партии:</span><span class="okc">✓ совпало</span></div>' },
+  { id: 'keys', title: 'Управление',
+    body: `<ul class="rgestures"><li>${TAP} свою фишку, затем подсвеченную клетку — шаг.</li><li>«Выстрел» и жёлтая стрелка — выстрел.</li>
+      <li>Ещё раз ${TAP.toLowerCase()} выбранную фишку — «стоять».</li><li>«Скан» или «Подмена», затем фишка.</li><li>«Готово!» — отправить приказы.</li></ul>
+      ${FINE ? `<table class="rkeys">${KEY_ROWS.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>` : ''}` },
+];
+const ruleCard = (x) => `<article class="rcard" data-rule="${x.id}">${x.pic || ''}<h3>${x.title}</h3>${x.body || `<p>${x.text}</p>`}${x.more || ''}</article>`;
+
+// Сколько секунд осталось в раунде, пока открыт ввод приказов; null — таймер не идёт.
+let clock = null; // { deadline, screen } — ставит экран планирования, снимает «Готово!» или дедлайн
+function clockLeft() {
+  if (!clock?.screen.isConnected) return null;
+  return Math.max(0, Math.ceil((clock.deadline - Date.now()) / 1000));
+}
+
+// Шторка «Как играть» (на ПК — диалог). first — какая карточка первой: по экрану или по ссылке «подробнее».
+// brief — вход гостя: карточки 1–5 и кнопка «Понятно, играть» (onPlay).
+// Таймер раунда не останавливается: он виден в шапке, а за 5 с до конца шторка закрывается сама.
+function openRules(first = helpAt, { brief = false, onPlay = null } = {}) {
+  if (panel && !panel.closable) return; // «Соперник отключился» важнее
+  const left0 = clockLeft();
+  if (left0 !== null && left0 <= 5) { toast('Время! Жми «Готово!»'); return; }
+  sfx.tap();
+  let list = brief ? RULES.slice(0, 5) : RULES.slice();
+  const i = list.findIndex((x) => x.id === first);
+  if (i > 0) list = [list[i], ...list.slice(0, i), ...list.slice(i + 1)];
+  const sheet = openPanel('rules', `<div class="sh-head" data-drag><b>Как играть</b><div class="row"><span class="rclock" hidden></span>
+      <button class="icbtn" data-close aria-label="Закрыть"><span>✕</span></button></div></div>
+    <div class="rules-body" tabindex="-1" data-focus>${list.map(ruleCard).join('')}
+      ${brief ? `<div class="rules-foot"><p>Остальное — перегородки, подмену ядра, огонь — можно открыть в любой момент кнопкой «?» вверху.</p>
+        <button class="btn main" style="flex:0 0 60px" id="rgo">Понятно, играть</button></div>` : ''}</div>`, { label: 'Как играть' });
+  sheet.classList.add('rules');
+  sheet.querySelector('#rgo')?.addEventListener('click', () => { closePanel('rules'); onPlay?.(); });
+  const clk = sheet.querySelector('.rclock');
+  const tick = () => {
+    const left = clockLeft();
+    clk.hidden = left === null;
+    if (left === null) return;
+    clk.textContent = `0:${String(left).padStart(2, '0')}`;
+    clk.classList.toggle('low', left <= 10);
+    if (left <= 5 && closePanel('rules')) toast('Время!');
+  };
+  tick();
+  panel.timer = setInterval(tick, 250);
+}
+
 // ---------- доска ----------
 // Доска рисуется для зрителя viewer: свои фишки мятные и внизу, чужие коралловые и вверху.
 function createBoard(viewer) {
   const cells = Array.from({ length: 25 }, (_, i) => `<div class="cell" data-i="${i}"></div>`).join('');
-  const wrap = el(`<div class="board-wrap"><div class="board"><div class="grid">${cells}</div>
+  const wrap = el(`<div class="board-wrap"><div class="board" role="group" aria-label="Поле 5 на 5"><div class="grid">${cells}</div>
     <div class="layer walls"></div><div class="layer marks"></div><div class="layer pieces"></div><div class="layer over"></div><div class="layer fx"></div></div></div>`);
   const board = wrap.firstElementChild;
   const layer = board.querySelector('.pieces');
@@ -526,11 +1089,11 @@ function createBoard(viewer) {
     xy(r, c) { const v = toView(viewer, r, c); return { x: v.c * b.step, y: v.r * b.step }; },
     center(r, c) { const { x, y } = b.xy(r, c); return { x: x + b.cell / 2, y: y + b.cell / 2 }; },
     cellEl(r, c) { const v = toView(viewer, r, c); return board.querySelector(`.cell[data-i="${v.r * 5 + v.c}"]`); },
-    // Создаёт или обновляет фишку. opts: { core, nextCore, dead, revealed, sel, dim, danger }
+    // Создаёт или обновляет фишку. opts: { core, nextCore, dead, revealed, sel, dim, danger, step, shot }
     piece(p, opts = {}) {
       let node = b.els.get(p.id);
       if (!node) {
-        node = el(`<div class="pc nomove" data-id="${p.id}"><div class="disc"><span></span></div></div>`);
+        node = el(`<div class="pc nomove" data-id="${p.id}" role="img"><div class="disc"><span></span></div></div>`);
         layer.append(node);
         b.els.set(p.id, node);
       }
@@ -542,9 +1105,22 @@ function createBoard(viewer) {
       if (opts.dim) d.classList.add('dim');
       if (opts.danger) d.classList.add('danger');
       d.querySelector('span').textContent = opts.dead ? '✕' : String(p.index + 1);
+      node.setAttribute('aria-label', `фишка ${p.index + 1}, ${p.owner === viewer ? 'твоя' : 'соперника'}${opts.dead ? ', сбита' : opts.core ? ', ядро' : ''}`);
       d.querySelectorAll('.core').forEach((x) => x.remove());
       if (opts.core && !opts.dead) d.append(el('<i class="core"></i>'));
       else if (opts.nextCore && !opts.dead) d.append(el('<i class="core next"></i>')); // сюда переедет ядро после «Готово!»
+      // Бейджи приказов: стрелка шага и стрелка выстрела. Снятый приказ «сдувается».
+      for (const kind of ['step', 'shot']) {
+        const text = opts.dead ? null : opts[kind];
+        let bd = d.querySelector(`.pbadge.${kind}:not(.gone)`);
+        if (text) {
+          if (!bd) d.append((bd = el(`<i class="pbadge ${kind}"></i>`)));
+          bd.textContent = text;
+        } else if (bd) {
+          bd.classList.add('gone');
+          setTimeout(() => bd.remove(), REDUCED ? 0 : 180);
+        }
+      }
       return node;
     },
     place(id, r, c, animate = true) {
@@ -579,7 +1155,8 @@ function createBoard(viewer) {
 }
 
 // Все фишки состояния на доску.
-function drawPieces(b, state, { core = null, nextCore = null, sel = null, dimOp = false, dangerFor = null } = {}) {
+// orders — свои приказы на экране планирования: на фишках рисуются бейджи шага и выстрела.
+function drawPieces(b, state, { core = null, nextCore = null, sel = null, dimOp = false, dangerFor = null, orders = null } = {}) {
   b.setWalls(state.walls || []);
   for (const p of state.pieces) {
     const mine = p.owner === b.viewer;
@@ -588,6 +1165,8 @@ function drawPieces(b, state, { core = null, nextCore = null, sel = null, dimOp 
       revealed: state.reveals[p.id],
       core: mine && core === p.index,
       nextCore: mine && nextCore === p.index,
+      step: mine && orders?.moves?.[p.index] ? ARROW[dirToView(b.viewer, orders.moves[p.index])] : null,
+      shot: mine && orders?.action?.type === 'shot' && orders.action.piece === p.index ? ARROW[dirToView(b.viewer, orders.action.dir)] : null,
       sel: mine && sel === p.index,
       dim: dimOp && !mine,
       danger: dangerFor?.has(p.id),
@@ -610,6 +1189,8 @@ const game = {
 };
 
 function startMatch() {
+  setPlaying('hot');
+  countGame();
   game.state = null;
   game.cores = { host: null, guest: null };
   game.orders = { host: null, guest: null };
@@ -621,16 +1202,16 @@ function startMatch() {
 }
 
 // ---------- экран: передай телефон ----------
-function showPass(player, what, next) {
+function showPass(player, what, next, help = 'goal') {
   stopTimer();
-  app.replaceChildren(el(`<section class="screen pass">
+  mount(el(`<section class="screen pass">
     <div class="pill">${what}</div>
     <p class="sub">${FINE ? 'Передай ход' : 'Передай телефон'}</p>
     <div class="who">${NAME[player]}</div>
     <p class="small" style="max-width:280px">Соперник, не подглядывай: сейчас на экране будут тайное ядро и приказы.</p>
     <div style="height:24px"></div>
     <button class="btn main" style="flex:0 0 60px;width:100%" id="go">Я ${NAME[player]}, показать</button>
-  </section>`));
+  </section>`), { help });
   const go = document.getElementById('go');
   go.onclick = next;
   setKeys(app.firstElementChild, (ev) => (ev.code === 'Enter' || ev.code === 'NumpadEnter' ? go.click() : false));
@@ -654,7 +1235,7 @@ function showCorePick(player, onConfirm, who = `${NAME[player]}, с`, walls = []
       <div class="actions"><button class="btn main" id="ok" disabled>Выбери фишку</button></div>
     </div>
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen, { title: 'Выбери ядро' });
   const b = createBoard(player);
   screen.querySelector('#board').replaceWith(b.wrap);
   const redraw = () => drawPieces(b, state, { core, sel: core, dimOp: true });
@@ -714,7 +1295,7 @@ function nextPlanning(player) {
       if (player === 'host') nextPlanning('guest');
       else resolve();
     },
-  }));
+  }), 'round');
 }
 
 // Подмена уходит судье только отпечатком commit(цель, соль), как по сети; цель игрок хранит до конца партии.
@@ -726,6 +1307,7 @@ async function sealSwap(player, orders, round) {
   return { ...orders, action: { type: 'swap', hash: await commit(core, salt) } };
 }
 
+// Подсказки 1-го раунда: только в первых двух партиях на этом устройстве.
 const HINTS = [
   `${TAP} фишку, затем соседнюю клетку — это шаг. Выстрел или скан — одно действие на весь раунд.`,
   'Выстрел: выбери фишку, нажми «Выстрел» и стрелку. Пуля летит с клетки после шага и бьёт первую фишку на пути — даже свою.',
@@ -739,22 +1321,25 @@ function showPlanning(player, ctx) {
   const me = player;
   const fire = state.round >= R.FIRE_FROM_ROUND;
   const plan = { moves: [null, null, null], action: null };
-  let sel = null, mode = 'step', scanMode = false, swapMode = false, hint = state.round === 1 ? 0 : -1;
+  let sel = null, mode = 'step', scanMode = false, swapMode = false, hint = state.round === 1 && progress.games <= 2 ? 0 : -1;
   let sent = null; // отправленные приказы: после «Готово!» маркер ядра переезжает на цель подмены
   const deadline = ctx.deadline;
   const scans = state.private[me]?.scans || [];
   const opSwap = state.swaps?.[R.other(me)] || null; // публичный факт подмены соперника
   const otherDone = ctx.otherDone;
   let locked = false;
+  // Разовая подсказка: первый результат своего скана на этом устройстве.
+  let tip = hint < 0 && scans.length && firstTime('scan')
+    ? 'Скан сработал: подпись «ЯДРО» или «пустышка» под фишкой соперника видишь только ты.' : null;
 
-  const screen = el(`<section class="screen duo">
+  const screen = el(`<section class="screen duo hdr">
     <div class="col side">
       <div class="top">
         <div><div class="round">Раунд ${state.round}<small>из ${R.MAX_ROUNDS}</small></div>
           <div class="status" id="ostatus">${otherDone ? '<i class="dot me"></i> Соперник готов' : '<i class="dot op"></i> Соперник думает…'}</div></div>
         <div class="timer ${fire ? 'fire' : ''}"><i></i><b>0:30</b></div>
       </div>
-      ${fire ? '<div class="firewarn"><b>Край горит!</b><span>После выстрелов все фишки на краевых клетках сгорят и раскроются.</span></div>' : ''}
+      ${fire ? '<button class="firewarn" id="firehelp"><b>Край горит!</b><span>После выстрелов все фишки на краевых клетках сгорят и раскроются. <u>Подробнее</u></span></button>' : ''}
       <div id="hint"></div>
     </div>
     <div id="board"></div>
@@ -763,10 +1348,12 @@ function showPlanning(player, ctx) {
       <div class="tiles" id="tiles"></div>
       <div class="modes" id="modes"></div>
       <p class="keys desk"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> фишка · <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> шаг · <kbd>Shift</kbd>+стрелка выстрел · <kbd>0</kbd> стоять · <kbd>S</kbd> скан · <kbd>W</kbd> подмена · <kbd>Enter</kbd> готово</p>
-      <div class="actions"><button class="btn sec act" id="scan"></button><button class="btn sec act" id="swap"></button><button class="btn main" id="ready">Готово!</button></div>
+      <div class="actions"><button class="btn sec act" id="scan"></button><button class="btn sec act" id="swap"></button><button class="btn main ready" id="ready">Готово!</button></div>
     </div>
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen, { title: 'Твой ход', help: 'round' });
+  clock = { deadline, screen }; // таймер виден в шапке правил, пока ввод открыт
+  screen.querySelector('#firehelp')?.addEventListener('click', () => openRules('fire'));
   const b = createBoard(me);
   screen.querySelector('#board').replaceWith(b.wrap);
   b.measure();
@@ -790,7 +1377,7 @@ function showPlanning(player, ctx) {
     const a = plan.action;
     const swapTo = a?.type === 'swap' ? a.target : null;
     const core = sent?.action?.type === 'swap' ? sent.action.target : ctx.core;
-    drawPieces(b, state, { core, nextCore: sent ? null : swapTo, sel, dangerFor: danger });
+    drawPieces(b, state, { core, nextCore: sent ? null : swapTo, sel, dangerFor: danger, orders: plan });
 
     // отметки: призраки, клетки для шага, стрелки выстрела, линия выстрела, цели скана
     const m = [];
@@ -855,8 +1442,9 @@ function showPlanning(player, ctx) {
     // подсказка
     const hintBox = screen.querySelector('#hint');
     hintBox.innerHTML = hint >= 0 && hint < HINTS.length
-      ? `<div class="hint"><span class="badge">${hint + 1}/${HINTS.length}</span><span>${HINTS[hint]} <b class="next">${hint < HINTS.length - 1 ? 'дальше →' : 'понятно ✓'}</b></span></div>` : '';
-    hintBox.querySelector('.hint')?.addEventListener('click', () => { hint++; render(); });
+      ? `<div class="hint"><span class="badge">${hint + 1}/${HINTS.length}</span><span>${HINTS[hint]} <b class="next">${hint < HINTS.length - 1 ? 'дальше →' : 'понятно ✓'}</b></span></div>`
+      : tip ? `<div class="hint"><span class="badge">?</span><span>${tip} <b class="next">понятно ✓</b></span></div>` : '';
+    hintBox.querySelector('.hint')?.addEventListener('click', () => { if (hint >= 0 && hint < HINTS.length) hint++; else tip = null; render(); });
 
     // предупреждение о крае
     const edge = screen.querySelector('#edge');
@@ -876,7 +1464,7 @@ function showPlanning(player, ctx) {
     screen.querySelectorAll('.tile[data-i]').forEach((t) => (t.onclick = () => {
       if (locked) return;
       if (swapMode) { pickSwap(+t.dataset.i); return; }
-      sel = +t.dataset.i; mode = 'step'; scanMode = false; sfx.tap(); render();
+      sel = +t.dataset.i; mode = 'step'; scanMode = false; sfx.tap(); buzz(8); render();
     }));
 
     // режим шаг/выстрел
@@ -895,6 +1483,46 @@ function showPlanning(player, ctx) {
     swapBtn.disabled = !canSwap() || locked;
     swapBtn.innerHTML = swapUsed ? 'Подмена<small>×0</small>' : a?.type === 'swap' ? 'Подмена<small>отменить</small>' : swapMode ? 'Отмена' : 'Подмена<small>×1</small>';
     swapBtn.classList.toggle('on', swapMode);
+    readyView();
+  }
+
+  // «Готово!»: за 10 с до конца пульсирует (за 5 с чаще); подпись — «все стоят» или отсчёт, если приказы есть.
+  function readyView(left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))) {
+    if (locked) return;
+    const ready = screen.querySelector('#ready');
+    const urge = left > 0 && left <= 10;
+    ready.classList.toggle('urge', urge);
+    ready.classList.toggle('fast', urge && left <= 5);
+    const any = plan.moves.some(Boolean) || !!plan.action;
+    const sub = !any ? 'все стоят' : urge ? `0:${String(left).padStart(2, '0')}` : '';
+    ready.innerHTML = `Готово!${sub ? `<small>${sub}</small>` : ''}`;
+  }
+
+  // Отклик на приказ: фишка «нажимается» и дёргается в сторону шага, при выстреле — отдача назад.
+  function kick(i, dir, recoil = false) {
+    buzz(12);
+    const disc = b.els.get(mine()[i].id)?.firstElementChild;
+    if (REDUCED || !disc?.animate) return;
+    const u = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dirToView(me, dir)];
+    const k = (recoil ? -0.12 : 0.18) * b.cell;
+    const base = disc.classList.contains('sel') ? 'translateY(-4px) scale(1.06)' : 'none';
+    disc.animate([
+      { transform: base },
+      { transform: 'scale(.9)', offset: 0.3 },
+      { transform: `translate(${u[0] * k}px, ${u[1] * k}px) scale(1.03)`, offset: 0.62 },
+      { transform: base },
+    ], { duration: 400, easing: 'ease-out' });
+  }
+
+  // Неверный тап: клетка (и фишка на ней) покачивается, внизу строка-подсказка.
+  function nudge(pos, text) {
+    toast(text, 1600);
+    if (REDUCED) return;
+    const wob = [{ transform: 'none' }, { transform: 'translateX(-4px) rotate(-4deg)' }, { transform: 'translateX(4px) rotate(4deg)' },
+      { transform: 'translateX(-2px) rotate(-2deg)' }, { transform: 'none' }];
+    b.cellEl(pos.r, pos.c)?.animate?.(wob, { duration: 320, easing: 'ease-in-out' });
+    const p = state.pieces.find((q) => q.r === pos.r && q.c === pos.c);
+    b.els.get(p?.id)?.firstElementChild?.animate?.(wob, { duration: 320, easing: 'ease-in-out', composite: 'add' });
   }
 
   // Цель подмены: своя живая фишка, не текущее ядро. Подмена занимает слот действия (вместо выстрела или скана).
@@ -909,17 +1537,18 @@ function showPlanning(player, ctx) {
   b.board.addEventListener('click', (ev) => {
     const cell = b.cellAt(ev);
     if (!cell || locked) return;
+    const at = (ok) => state.pieces.find((q) => ok(q) && q.r === cell.r && q.c === cell.c);
+    const tap = TAP.toLowerCase();
     if (scanMode) {
-      const t = state.pieces.find((q) => q.owner !== me && q.alive && q.r === cell.r && q.c === cell.c);
-      scanMode = false;
-      if (t) { plan.action = { type: 'scan', target: t.index }; sfx.tap(); }
-      render();
+      const t = at((q) => q.owner !== me && q.alive);
+      if (t) { plan.action = { type: 'scan', target: t.index }; scanMode = false; sfx.tap(); render(); }
+      else nudge(cell, `Скан: ${tap} фишку соперника или нажми «Отмена»`);
       return;
     }
     if (swapMode) {
-      const t = mine().find((q) => q.alive && q.r === cell.r && q.c === cell.c);
+      const t = at((q) => q.owner === me && q.alive);
       if (t) pickSwap(t.index);
-      else { swapMode = false; render(); }
+      else nudge(cell, `Подмена: ${tap} свою фишку или нажми «Отмена»`);
       return;
     }
     if (sel !== null) {
@@ -929,13 +1558,20 @@ function showPlanning(player, ctx) {
       if (dir && mode === 'step') { setStep(dir); return; }
       if (dir && mode === 'shot') { setShot(dir); return; }
     }
-    const own = mine().find((p) => p.alive && p.r === cell.r && p.c === cell.c);
+    const own = at((q) => q.owner === me && q.alive);
     if (own) {
       if (own.index === sel) plan.moves[sel] = null; // повторный тап — «стоять»
       else { sel = own.index; mode = 'step'; }
       sfx.tap();
-    } else sel = null;
-    render();
+      buzz(8);
+      render();
+      return;
+    }
+    // Мимо: не молчим, а подсказываем. Выбор фишки при этом не сбрасывается.
+    const op = at((q) => q.owner !== me && q.alive);
+    if (sel === null) nudge(cell, op ? `Это фишка соперника. ${TAP} свою` : at((q) => !q.alive) ? 'Эта фишка сбита' : `Сначала ${tap} свою фишку`);
+    else if (mode === 'shot') nudge(cell, 'Выстрел: выбери стрелку рядом с фишкой');
+    else nudge(cell, op ? 'Это фишка соперника. Шагни на подсвеченную клетку' : 'Шаг — только на соседнюю клетку');
   });
 
   screen.querySelector('#scan').onclick = () => {
@@ -956,22 +1592,25 @@ function showPlanning(player, ctx) {
   function setStep(dir) {
     const p = mine()[sel];
     const r = p.r + R.DIRS[dir].dr, c = p.c + R.DIRS[dir].dc;
-    if (!R.inBounds(r, c) || R.crossesWall(state.walls, p.r, p.c, dir)) return;
+    if (!R.inBounds(r, c)) { nudge(p, 'Там край поля'); return; }
+    if (R.crossesWall(state.walls, p.r, p.c, dir)) { nudge({ r, c }, 'Мешает перегородка'); return; }
     plan.moves[sel] = dir;
     sfx.tap();
     if (hint === 0) hint = 1;
     render();
+    kick(sel, dir);
   }
   // Выстрел выбранной фишки; повтор того же выстрела его отменяет.
   function setShot(dir) {
     const t = target(mine()[sel]);
-    if (!R.inBounds(t.r + R.DIRS[dir].dr, t.c + R.DIRS[dir].dc)) return;
+    if (!R.inBounds(t.r + R.DIRS[dir].dr, t.c + R.DIRS[dir].dc)) { nudge(t, 'Там край поля'); return; }
     const same = plan.action?.type === 'shot' && plan.action.piece === sel && plan.action.dir === dir;
     plan.action = same ? null : { type: 'shot', piece: sel, dir };
     mode = 'shot';
     sfx.tap();
     if (hint <= 1 && hint >= 0) hint = 2;
     render();
+    if (!same) kick(sel, dir, true);
   }
 
   // Клавиатура (ПК) повторяет тапы. Стрелки — направления на экране, а не на доске хоста.
@@ -994,7 +1633,7 @@ function showPlanning(player, ctx) {
       return;
     }
     if (ev.code === 'Digit0' || ev.code === 'Numpad0' || ev.code === 'Backspace') {
-      if (sel !== null) { plan.moves[sel] = null; sfx.tap(); render(); }
+      if (sel !== null) { plan.moves[sel] = null; sfx.tap(); buzz(8); render(); }
       return;
     }
     if (ev.code === 'KeyS') { screen.querySelector('#scan').click(); return; }
@@ -1007,7 +1646,7 @@ function showPlanning(player, ctx) {
   function submit(orders) {
     if (locked) return;
     stopTimer();
-    if (orders) sfx.ready();
+    if (orders) { sfx.ready(); buzz([15, 60, 15]); }
     sent = orders;
     lock(orders ? 'Приказы отправлены' : 'Время вышло');
     ctx.onSubmit(orders);
@@ -1016,10 +1655,13 @@ function showPlanning(player, ctx) {
   // После «Готово!» или дедлайна ввод закрыт, остаётся ждать соперника.
   function lock(text) {
     locked = true;
+    if (clock?.screen === screen) clock = null;
+    setTitle('');
     sel = null; scanMode = false; swapMode = false;
     render();
     const ready = screen.querySelector('#ready');
     ready.disabled = true;
+    ready.classList.remove('urge', 'fast');
     ready.textContent = text;
     // Скан и подмена больше не нужны: освобождаем место под надпись на кнопке.
     screen.querySelectorAll('.act').forEach((x) => (x.style.display = 'none'));
@@ -1028,11 +1670,15 @@ function showPlanning(player, ctx) {
 
   // Таймер тикает раз в секунду до дедлайна. Не успел — все фишки стоят (правило 8).
   const timer = screen.querySelector('.timer');
+  let ticker = null; // интервал этого экрана
   const tick = () => {
+    // Экран сменился (например, вышли из партии в меню): иначе дедлайн вернул бы партию поверх меню.
+    if (!screen.isConnected) { clearInterval(ticker); return; }
     const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
     timer.querySelector('b').textContent = `0:${String(left).padStart(2, '0')}`;
     timer.querySelector('i').style.transform = `scaleX(${left / R.ROUND_SECONDS})`;
     timer.classList.toggle('low', left <= 5);
+    readyView(left);
     if (left > 0 && left <= 5 && !locked) sfx.tick();
     if (left <= 0) {
       stopTimer();
@@ -1045,10 +1691,11 @@ function showPlanning(player, ctx) {
   render();
   tick();
   stopTimer();
-  timerId = setInterval(tick, 1000);
+  timerId = ticker = setInterval(tick, 1000);
   return {
     setOtherDone() {
       screen.querySelector('#ostatus').innerHTML = '<i class="dot me"></i> Соперник готов';
+      if (!locked) setTitle('Соперник готов!');
     },
     lock(text) {
       stopTimer();
@@ -1098,7 +1745,7 @@ function resolve() {
 // mySwap: { from, to } — своя подмена в этом раунде (только по сети: в hotseat экран видят оба).
 function showReplay({ viewer, prev, state, events, nextLabel, onNext, mySwap = null }) {
   stopTimer();
-  const screen = el(`<section class="screen duo">
+  const screen = el(`<section class="screen duo hdr">
     <div class="col side">
       <div class="top replay-top"><div class="round">Повтор · раунд ${prev.round}</div><div class="slowpill" id="slow">замедление ×0.25</div></div>
       <div class="phases" id="phases"><div><i></i><span>шаги</span></div><div><i></i><span>выстрелы</span></div><div><i></i><span>итог</span></div></div>
@@ -1106,25 +1753,63 @@ function showReplay({ viewer, prev, state, events, nextLabel, onNext, mySwap = n
     <div id="board"></div>
     <div class="col side2">
       <div class="card log" id="log"></div>
-      <p class="keys desk"><kbd>R</kbd> ещё раз · <kbd>Enter</kbd> дальше</p>
-      <div class="actions"><button class="btn sec" id="again">Ещё раз</button><button class="btn main" id="next">${nextLabel}</button></div>
+      <div id="tip"></div>
+      <p class="keys desk"><kbd>R</kbd> ещё раз · <kbd>Пробел</kbd> пропустить · <kbd>Enter</kbd> дальше</p>
+      <div class="actions"><button class="btn sec" id="again">Пропустить</button><button class="btn main" id="next">${nextLabel}</button></div>
     </div>
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen, { help: 'move' });
   const b = createBoard(viewer);
   screen.querySelector('#board').replaceWith(b.wrap);
   b.measure();
-  let token = 0;
-  const run = () => playReplay(b, screen, prev, state, events, viewer, ++token, () => token, mySwap);
-  screen.querySelector('#again').onclick = run;
+  let token = 0, playing = false;
+  const again = screen.querySelector('#again');
+  const setPlaying = (on) => { playing = on; again.textContent = on ? 'Пропустить' : 'Ещё раз'; };
+  const run = async () => {
+    const rp = (RP = { speed: 1, skip: false, screen });
+    const my = ++token;
+    setPlaying(true);
+    try { await playReplay(b, screen, prev, state, events, viewer, my, () => token, mySwap); }
+    finally { rp.skip = false; if (token === my) setPlaying(false); }
+  };
+  // Пока идёт повтор, кнопка «Пропустить» сразу показывает итог; после — «Ещё раз».
+  const skip = () => { if (playing) RP.skip = true; };
+  again.onclick = () => (playing ? skip() : run());
+  // Тап по доске во время повтора ускоряет его втрое.
+  b.board.addEventListener('pointerdown', () => {
+    if (!playing || RP.speed !== 1) return;
+    RP.speed = 3;
+    rpRate();
+  });
   const next = screen.querySelector('#next');
-  next.onclick = () => { token++; onNext(next); };
+  next.onclick = () => {
+    onNext(next);
+    // Остались на экране (ждём соперника) — досматривать некогда, показываем итог; ушли — повтор больше не нужен.
+    if (screen.isConnected) skip();
+    else token++;
+  };
   setKeys(screen, (ev) => {
     if (ev.code === 'KeyR') run();
+    else if (ev.code === 'Space') skip();
     else if ((ev.code === 'Enter' || ev.code === 'NumpadEnter') && !next.disabled) next.click();
     else return false;
   });
   run();
+}
+
+// Часы повтора: тап по доске ускоряет ×3 (и CSS-анимации тоже), «Пропустить» — сразу к итогу, без звука.
+let RP = { speed: 1, skip: false, screen: null };
+async function rwait(ms) {
+  let left = ms;
+  while (left > 0 && !RP.skip) {
+    const t0 = performance.now();
+    await sleep(Math.min(40, left / RP.speed));
+    left -= (performance.now() - t0) * RP.speed;
+    rpRate();
+  }
+}
+function rpRate() {
+  for (const a of RP.screen?.getAnimations?.({ subtree: true }) || []) if (a.playbackRate !== RP.speed) a.playbackRate = RP.speed;
 }
 
 // В hotseat экран общий, поэтому фишки называются по игрокам; по сети — «твоя / соперника».
@@ -1141,7 +1826,8 @@ function whoName(player) {
 }
 
 async function playReplay(b, screen, prev, finalState, events, viewer, my, current, mySwap = null) {
-  const alive = () => current() === my;
+  // Повтор идёт, пока его экран на странице и его не запустили заново («Ещё раз»).
+  const alive = () => current() === my && screen.isConnected;
   const byId = (id) => prev.pieces.find((p) => p.id === id);
   const logEl = screen.querySelector('#log');
   const lines = [];
@@ -1152,7 +1838,7 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
   b.fx.innerHTML = '';
   b.setBurning(prev.round >= R.FIRE_FROM_ROUND);
   drawPieces(b, prev);
-  await sleep(450);
+  await rwait(450);
   if (!alive()) return;
 
   // 0. Подмена ядра срабатывает до шагов. Факт видят оба, цель — только владелец.
@@ -1192,7 +1878,13 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
     if (e.ok) add(`<div><span class="n ${who}">${p.index + 1}</span> шаг ${WORD[dirToView(viewer, e.dir)]}</div>`);
     else add(`<div><span class="b">●</span> ${pieceName(p)}: шаг ${WORD[dirToView(viewer, e.dir)]} не вышел — ${REASON[e.reason]}</div>`);
   }
-  await sleep(moves.length ? 650 : 250);
+  // Разовая подсказка: первый раз фишка упёрлась — объясняем правило движения.
+  if (moves.some((e) => !e.ok && e.reason !== 'edge') && firstTime('bump')) {
+    const box = screen.querySelector('#tip');
+    box.innerHTML = '<button class="hint tip"><span class="badge">?</span><span>Почему фишка не пошла? <b class="next">Правила движения →</b></span></button>';
+    box.firstElementChild.onclick = () => openRules('move');
+  }
+  await rwait(moves.length ? 650 : 250);
   if (!alive()) return;
 
   // 2. Выстрелы, скан и огонь
@@ -1206,7 +1898,7 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
     sfx.scan();
     b.fx.append(el(`<div class="scanring" style="left:${c.x - size / 2}px;top:${c.y - size / 2}px;width:${size}px;height:${size}px"></div>`));
     add(`<div><span class="rv">◎ ${whoName(e.by)} ${e.by === NAMING ? 'сканируешь' : 'сканирует'} ${pieceName(t, true)}. ${e.by === NAMING ? 'Ответ видишь только ты.' : 'Ответ видит только он.'}</span></div>`);
-    await sleep(900);
+    await rwait(900);
     if (!alive()) return;
   }
   for (const e of events.filter((x) => x.type === 'shot')) {
@@ -1269,7 +1961,7 @@ async function playSwap(b, prev, e, viewer, mine) {
       ], { duration: 1100, delay: 250, easing: 'ease-in-out', fill: 'backwards' });
     }
   }
-  await sleep(tl * 0.64 + 150);
+  await rwait(tl * 0.64 + 150);
   word.remove();
   marker?.remove();
   discs.forEach((d) => d.classList.remove('swapflick'));
@@ -1298,14 +1990,15 @@ async function playShot(b, screen, e, target, answer, viewer, speed) {
     if (e.wall) {
       // Пуля в перегородку: вспышка крошек на ней и глухой удар, без тряски и надписи.
       const hitAt = tl * 0.45;
-      await sleep(hitAt);
+      await rwait(hitAt);
+      if (!tr.isConnected) return; // ушли с экрана повтора: без звука за кадром
       const face = { x: from.x + unit[0] * len, y: from.y + unit[1] * len };
       const crumbs = el(`<div class="crumbs" style="left:${face.x}px;top:${face.y}px"></div>`);
       fx.append(crumbs);
       sfx.thud();
-      await sleep(tl - hitAt);
+      await rwait(tl - hitAt);
       crumbs.remove();
-    } else await sleep(tl);
+    } else await rwait(tl);
     tr.remove();
     return;
   }
@@ -1345,12 +2038,14 @@ async function impact(b, target, answer, viewer, tl, skip, label = answer === 'c
     b.wrap.classList.remove('shaking'); void b.wrap.offsetWidth; b.wrap.classList.add('shaking');
   }
   const hitAt = Math.max(0, tl * 0.4 - skip);
-  await sleep(hitAt);
+  await rwait(hitAt);
+  if (!disc.isConnected) return; // ушли с экрана повтора: без звука и вибрации за кадром
   if (label) {
     sfx.boom();
     label.includes('ЯДР') ? sfx.core() : sfx.dummy();
   }
-  await sleep(tl - skip - hitAt);
+  buzz(answer === 'core' ? [60, 40, 120] : target.owner === viewer || NAMING === 'hotseat' ? 40 : 20);
+  await rwait(tl - skip - hitAt);
   ring.remove();
   word?.remove();
   b.wrap.classList.remove('shaking');
@@ -1376,6 +2071,7 @@ function hotseatFinal() {
 function showFinal(info) {
   stopTimer();
   closeSheet();
+  setPlaying(null);
   const s = info.state;
   const me = info.me;
   const winner = s.result?.winner ?? null;
@@ -1444,15 +2140,23 @@ function showFinal(info) {
     </div>
     <div class="col">
     <div class="card"><div class="cardtitle">Итог для чата</div><div class="summary" id="sum">${summary}</div>
-      <button class="btn main" style="width:100%;flex:0 0 60px" id="copy">Скопировать итог</button></div>
+      ${CAN_SHARE ? '<button class="btn main" style="width:100%;flex:0 0 60px" id="share">Поделиться итогом</button><button class="textbtn" id="copy">или скопировать</button>'
+        : '<button class="btn main" style="width:100%;flex:0 0 60px" id="copy">Скопировать итог</button>'}</div>
     ${me ? '<div class="honesty" id="honesty"></div>' : ''}
     <div class="actions"><button class="btn sec" id="menu">${me ? 'Выйти' : 'В меню'}</button><button class="btn sec wide" style="flex:1" id="again">Реванш</button></div>
     </div>
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen, { awake: false, help: 'honest' });
   (cls === 'lose' ? sfx.lose : cls === 'draw' ? sfx.draw : sfx.win)();
+  buzz(cls === 'lose' ? [200, 100, 200] : cls === 'draw' ? [80, 80, 80] : [40, 60, 40, 60, 120]);
   if (me) setHonesty(info.honesty, reason);
-  screen.querySelector('#copy').onclick = (ev) => copyText(summary, ev.currentTarget, 'Скопировать итог');
+  // Итог уходит вместе со ссылкой на игру (без комнаты).
+  const copyBtn = screen.querySelector('#copy');
+  const copyLabel = copyBtn.textContent;
+  const shareText = `${summary}\n${GAME_URL}`;
+  copyBtn.onclick = () => copyText(shareText, copyBtn, copyLabel);
+  const shareBtn = screen.querySelector('#share');
+  if (shareBtn) shareBtn.onclick = () => shareOr({ text: summary, url: GAME_URL }, () => copyText(shareText, copyBtn, copyLabel));
   const again = screen.querySelector('#again');
   again.onclick = () => {
     info.onRematch();
@@ -1467,7 +2171,8 @@ function setHonesty(h, reason) {
   if (!box) return;
   if (h?.ok) {
     const n = h.checked;
-    box.innerHTML = `<i class="ok">✓</i><span>Честность проверена: ${n} ${n === 1 ? 'ответ' : n >= 2 && n <= 4 ? 'ответа' : 'ответов'} соперника ${n === 1 ? 'совпал' : 'совпали'} с коммитом.</span>`;
+    // Ответов могло не быть (соперник ничего не раскрывал): тогда проверено только ядро.
+    box.innerHTML = `<i class="ok">✓</i><span>Честность проверена: ${n ? `${n} ${n === 1 ? 'ответ' : n <= 4 ? 'ответа' : 'ответов'} соперника ${n === 1 ? 'совпал' : 'совпали'} с коммитом` : 'ядро соперника совпало с коммитом'}.</span>`;
   } else if (reason === 'forfeit') {
     box.innerHTML = '<span>Соперник не раскрыл ядро, честность не проверялась.</span>';
   } else {
@@ -1489,11 +2194,18 @@ let planning = null;
 let lobbyLink = null;
 let finalInfo = null;
 
-const newRoom = () => { match?.leave(); location.href = location.pathname; };
+// Новая комната: партия уже не идёт (без вопроса браузера), запись старой комнаты в истории заменяем.
+const newRoom = () => {
+  nav.leaving = true;
+  playing = null;
+  match?.leave();
+  location.replace(location.pathname);
+};
 
 // ---------- экран: лобби (хост ждёт соперника) ----------
 function showLobby() {
   document.body.classList.remove('cheat');
+  setPlaying(null);
   NAMING = 'host';
   if (!match) match = createHost(netUI);
   const chips = (cls, base) => [0, 1, 2].map((i) => `<div class="chip ${cls}" style="animation-delay:${base + i * 0.3}s"></div>`).join('');
@@ -1511,13 +2223,14 @@ function showLobby() {
       <div class="card">
         <div class="cardtitle">Ссылка на комнату</div>
         <div class="linkbox mono" id="link">Создаём комнату…</div>
-        <button class="btn main" style="width:100%;flex:0 0 60px" id="copy" disabled>Скопировать</button>
+        ${CAN_SHARE ? '<button class="btn main" style="width:100%;flex:0 0 60px" id="share" disabled>Отправить другу</button><button class="textbtn" id="copy" disabled>или скопировать ссылку</button>'
+          : '<button class="btn main" style="width:100%;flex:0 0 60px" id="copy" disabled>Скопировать</button>'}
       </div>
       <p class="small">Отправь ссылку другу и сразу вернись на эту страницу: пока она свёрнута, друг не сможет войти. Ты хост и судья этой партии.</p>
       <button class="textbtn" id="hot">или сыграть вдвоём на одном экране →</button>
     </div>
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen);
   screen.querySelector('#hot').onclick = () => {
     match?.leave();
     match = null;
@@ -1527,18 +2240,65 @@ function showLobby() {
   if (lobbyLink) netUI.lobby(lobbyLink);
 }
 
+// ---------- экран: вход гостя по ссылке ----------
+// Новичку по ссылке — сначала суть игры и «Сначала правила». Соединение с хостом идёт в фоне;
+// выбор ядра, пришедший раньше, чем гость нажал «Играть», ждёт нажатия. Кто уже играл на этом устройстве, экран не видит.
+const invite = { screen: null, walls: null, slow: false };
+function showInvite() {
+  const chips = (cls, base) => [0, 1, 2].map((i) => `<div class="chip ${cls}" style="animation-delay:${base + i * 0.3}s"></div>`).join('');
+  const screen = el(`<section class="screen lobby invite">
+    <div class="col">
+      <div class="pill">Тебя позвали в</div>
+      <div class="chips">${chips('op', 0)}</div>
+      <h1 class="logo">ДВОЙ<br>НИКИ</h1>
+      <div class="chips">${chips('me', 0.15)}</div>
+      <p class="lead">Дуэль один на один: три фишки, одна из них — ядро. Найди ядро друга раньше, чем он найдёт твоё.</p>
+    </div>
+    <div class="grow"></div>
+    <div class="col">
+      <div class="istatus" id="istatus"></div>
+      <button class="btn main" style="width:100%;flex:0 0 60px" id="play">Играть</button>
+      <button class="btn sec" style="width:100%;flex:0 0 60px" id="learn">Сначала правила (30 с)</button>
+    </div>
+  </section>`);
+  invite.screen = mount(screen);
+  inviteStatus();
+  const play = () => {
+    if (invite.screen !== screen || !screen.isConnected) return;
+    sfx.tap();
+    invite.screen = null;
+    if (invite.walls) netUI.corePick(invite.walls);
+    else {
+      showWaiting('Подключение', 'Ищем комнату соперника…');
+      if (invite.slow) netUI.roomSlow();
+    }
+  };
+  screen.querySelector('#play').onclick = play;
+  screen.querySelector('#learn').onclick = () => openRules('goal', { brief: true, onPlay: play });
+  setKeys(screen, (ev) => (ev.code === 'Enter' || ev.code === 'NumpadEnter' ? play() : false));
+}
+// Строка над кнопками: ищем комнату, всё ещё ищем (хост свернул страницу) или друг ждёт.
+function inviteStatus() {
+  const box = invite.screen?.querySelector('#istatus');
+  if (!box) return;
+  box.innerHTML = invite.walls ? '<i class="dot me"></i><span>Друг на месте и ждёт тебя</span>'
+    : invite.slow ? '<i class="dot shot"></i><span>Всё ещё ищем. Попроси друга вернуться на страницу игры.</span>'
+      : '<i class="dot shot"></i><span>Подключаемся к комнате друга…</span>';
+}
+
 // ---------- простые экраны ----------
 // second: необязательная вторая кнопка-ссылка { text, action }.
 function showNotice(title, text, button, action, second = null) {
   stopTimer();
   closeSheet();
+  setPlaying(null);
   const screen = el(`<section class="screen pass">
     <h2 class="h1">${title}</h2>
     <p class="sub" style="max-width:300px">${text}</p>
     ${button ? '<div style="height:16px"></div><button class="btn main" style="flex:0 0 60px;width:100%" id="go"></button>' : ''}
     ${second ? '<button class="textbtn" id="go2"></button>' : ''}
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen, { awake: false });
   if (button) {
     const b = screen.querySelector('#go');
     b.textContent = button;
@@ -1552,19 +2312,20 @@ function showNotice(title, text, button, action, second = null) {
   }
 }
 
-function showWaiting(title, text) {
+function showWaiting(title, text, help = 'goal') {
   stopTimer();
-  app.replaceChildren(el(`<section class="screen pass">
+  mount(el(`<section class="screen pass">
     <div class="pill">${title}</div>
     <div class="row" style="justify-content:center"><i class="dot shot"></i><b style="font-size:20px;font-weight:800" id="wtext">${text}</b></div>
     <p class="small" id="wnote" style="max-width:300px"></p>
-  </section>`));
+  </section>`), { help });
 }
 
 // ---------- экран: ЧИТЕР ----------
 function showCheater(d) {
   stopTimer();
   closeSheet();
+  setPlaying(null);
   document.body.classList.add('cheat');
   const quote = (a) => (a === 'core' ? '«ядро»' : '«пустышка»');
   let text = '', rows = '';
@@ -1600,42 +2361,34 @@ function showCheater(d) {
     text = `В раунде ${d.round} соперник раскрыл приказы, которые не совпали с отпечатком, отправленным до раскрытия.`;
     rows = `<div class="small2">Приказы раунда ${d.round}</div><div class="bad">отпечаток не совпал ✕</div>`;
   }
-  const screen = el(`<section class="screen">
+  const screen = el(`<section class="screen hdr">
     <div class="pill" style="background:rgba(42,27,107,.18)">проверка честности не пройдена</div>
     <div class="cheatword">ЧИТЕР!</div>
     <p class="sub" style="color:#fff">${text}</p>
     <div class="card cheatcard">${rows}</div>
     <div class="actions"><button class="btn newroom" id="go">Новая комната</button></div>
   </section>`);
-  app.replaceChildren(screen);
+  mount(screen, { awake: false, help: 'honest' });
   screen.querySelector('#go').onclick = newRoom;
 }
 
 // ---------- шторка «Соперник отключился» ----------
-let sheetTimer = null;
+// Её открывает и закрывает сеть; «Назад» и тап по фону её не закрывают.
 function openSheet(until) {
-  closeSheet();
-  document.body.classList.add('dimmed');
-  const sh = el(`<div class="sheet-wrap"><div class="sheet"><i class="handle"></i>
-    <div class="row"><i class="dot op"></i><b style="font-size:22px;font-weight:900">Соперник отключился</b></div>
+  const sheet = openPanel('disconnect', `<div class="row"><i class="dot op"></i><b style="font-size:22px;font-weight:900">Соперник отключился</b></div>
     <p>Ждём, пока он вернётся на вкладку. Если он выйдет из игры, победа будет засчитана тебе.</p>
     <p class="count" id="count"></p>
-    <button class="btn lobbybtn" id="leave">В лобби</button></div></div>`);
-  document.body.append(sh);
-  sh.querySelector('#leave').onclick = newRoom;
+    <button class="btn lobbybtn" id="leave">В лобби</button>`, { closable: false, label: 'Соперник отключился' });
+  sheet.querySelector('#leave').onclick = newRoom;
   const tick = () => {
     const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-    const c = document.getElementById('count');
-    if (c) c.textContent = `Победа будет засчитана через ${left} с`;
+    sheet.querySelector('#count').textContent = `Победа будет засчитана через ${left} с`;
   };
   tick();
-  sheetTimer = setInterval(tick, 1000);
+  panel.timer = setInterval(tick, 1000);
 }
-function closeSheet() {
-  clearInterval(sheetTimer);
-  document.querySelector('.sheet-wrap')?.remove();
-  document.body.classList.remove('dimmed');
-}
+// Смена экрана по ходу партии закрывает шторку отключения и вопрос «Выйти?»; настройки остаются.
+function closeSheet() { closePanel('disconnect', 'confirm'); }
 
 // ---------- колбэки для net.js ----------
 const netUI = {
@@ -1650,12 +2403,21 @@ const netUI = {
     const b = document.createElement('b');
     b.textContent = link.slice(i + 6);
     box.append(b);
+    const label = copy.textContent;
     copy.disabled = false;
-    copy.onclick = () => copyText(link, copy, 'Скопировать');
+    copy.onclick = () => copyText(link, copy, label);
+    const share = document.getElementById('share');
+    if (share) {
+      share.disabled = false;
+      share.onclick = () => shareOr({ title: 'Двойники', text: 'Сыграем в «Двойники»? Заходи в мою комнату:', url: link },
+        () => copyText(link, copy, label));
+    }
   },
   fatal(text) { showNotice('Не получилось', text, 'Обновить', () => location.reload()); },
   // Гость долго не находит хоста: чаще всего хост свернул страницу, пока отправлял ссылку.
   roomSlow() {
+    invite.slow = true;
+    inviteStatus();
     const n = document.getElementById('wnote');
     if (n) n.textContent = 'Всё ещё ищем. Попроси друга вернуться на страницу игры: пока она свёрнута, войти в комнату нельзя.';
   },
@@ -1665,17 +2427,22 @@ const netUI = {
   },
   roomFull() { showNotice('Комната занята', 'В этой партии уже двое игроков. Создай свою комнату.', 'Новая комната', newRoom); },
   corePick(walls = []) {
+    // Гость ещё на экране входа (читает правила): выбор ядра подождёт «Играть».
+    if (invite.screen?.isConnected) { invite.walls = walls; inviteStatus(); return; }
     closeSheet();
+    setPlaying('net');
+    countGame();
     document.body.classList.remove('cheat');
     planning = null;
     finalInfo = null;
     NAMING = match.role;
     showCorePick(match.role, (core, salt) => match.chooseCore(core, salt), 'С', walls);
   },
-  waitCore(opponentDone) { showWaiting('Ядро выбрано', opponentDone ? 'Начинаем…' : 'Соперник выбирает ядро…'); },
+  waitCore(opponentDone) { showWaiting('Ядро выбрано', opponentDone ? 'Начинаем…' : 'Соперник выбирает ядро…', 'round'); },
   opponentCore() {
     const w = document.getElementById('wtext');
     if (w) w.textContent = 'Начинаем…';
+    else if (document.getElementById('hash')) setTitle('Соперник ждёт тебя'); // сам ещё выбираю ядро
   },
   planning({ view, deadline, core }) {
     planning = showPlanning(match.role, { state: view, deadline, core, otherDone: false, onSubmit: (o) => match.submitOrders(o) });
@@ -1696,7 +2463,10 @@ const netUI = {
       },
     });
   },
-  opponentNext() { toast('Соперник готов к следующему раунду'); },
+  opponentNext() {
+    toast('Соперник готов к следующему раунду');
+    setTitle('Соперник ждёт тебя');
+  },
   final(info) {
     finalInfo = info;
     showFinal({ ...info, onRematch: () => match.rematch(), onMenu: newRoom });
@@ -1711,16 +2481,20 @@ const netUI = {
   },
   disconnected(on, until) {
     if (on) openSheet(until);
-    else closeSheet();
+    else closePanel('disconnect');
   },
-  opponentRematch() { toast('Соперник хочет реванш'); },
+  opponentRematch() {
+    toast('Соперник хочет реванш');
+    setTitle('Соперник хочет реванш');
+  },
 };
 
 // ---------- старт ----------
 const room = roomFromUrl();
 if (room) {
   NAMING = 'guest';
-  showWaiting('Подключение', 'Ищем комнату соперника…');
+  if (progress.games > 0) showWaiting('Подключение', 'Ищем комнату соперника…');
+  else showInvite();
   match = createGuest(netUI, room);
 } else {
   showLobby();

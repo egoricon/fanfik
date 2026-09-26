@@ -731,16 +731,19 @@ export function createGuest(ui, roomId) {
     } else if (G.everConnected && G.stage !== 'over') {
       ui.disconnected(true, Date.now() + FORFEIT_MS);
       clearTimeout(forfeitTimer);
-      // Хост не вернулся — побеждает гость (засчитываем сами: судьи больше нет).
-      forfeitTimer = setTimeout(() => {
-        G.forfeit = 'host';
-        G.stage = 'over';
-        const base = G.view || R.viewFor(R.createGame(), 'guest');
-        G.view = R.forfeit(base, 'host');
-        ui.disconnected(false);
-        ui.final(finalInfo());
-      }, FORFEIT_MS);
+      forfeitTimer = setTimeout(hostLeft, FORFEIT_MS);
     }
+  }
+
+  // Хост не вернулся за 60 с или сам вышел (bye) — побеждает гость. Судьи больше нет, засчитываем сами.
+  function hostLeft() {
+    clearTimeout(forfeitTimer);
+    forfeitTimer = null;
+    G.forfeit = 'host';
+    G.stage = 'over';
+    G.view = R.forfeit(G.view || R.viewFor(R.createGame(), 'guest'), 'host');
+    ui.disconnected(false);
+    ui.final(finalInfo());
   }
 
   function reset() {
@@ -834,6 +837,10 @@ export function createGuest(ui, roomId) {
         break;
       case 'rematch':
         ui.opponentRematch();
+        break;
+      case 'bye':
+        // Хост вышел посреди партии — победа сразу, без минуты ожидания.
+        if (G.stage !== 'over' && G.stage !== 'connecting') hostLeft();
         break;
     }
   }
