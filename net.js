@@ -52,6 +52,13 @@ export function roomLink(id, loc = globalThis.location) {
 
 const randomId = () => makeSalt().slice(0, 12);
 
+// Раскладка перегородок на партию: случайная из набора rules.js (выбирает хост).
+const randomWalls = () => R.WALL_LAYOUTS[Math.floor(Math.random() * R.WALL_LAYOUTS.length)];
+// Перегородки от хоста: только отрезки внутри поля, не больше восьми.
+const cleanWalls = (w) => (Array.isArray(w) ? w : [])
+  .filter((x) => Number.isInteger(x?.r) && Number.isInteger(x?.c) && R.inBounds(x.r, x.c) && (x.side === 'h' || x.side === 'v'))
+  .slice(0, 8).map((x) => ({ r: x.r, c: x.c, side: x.side }));
+
 // ---------- канал сообщений ----------
 // Все сообщения — JSON { type, seq, sid, ... }. seq растёт у отправителя, sid — id вкладки
 // отправителя (после перезагрузки seq начинается заново). Дубли по sid:seq отбрасываются.
@@ -238,14 +245,41 @@ async function openTransport(ui, roomId) {
 }
 
 // Проверка честности соперника в конце партии.
+// fin — его final: { core, salt, swap: null | { core, salt, round } }; state — состояние,
+// где лежит публичный факт подмены (state.swaps[player] = { round, hash }).
 // Возвращает { ok, checked, detail }.
-async function checkHonesty(coreHash, core, salt, answers) {
-  if (!(await verify(core, salt, coreHash))) {
-    return { ok: false, checked: answers.length, detail: { kind: 'commit', core } };
-  }
-  const lies = R.findLies(core, answers);
-  if (lies.length) return { ok: false, checked: answers.length, detail: { kind: 'answer', core, lie: lies[0] } };
+async function checkHonesty(coreHash, fin, answers, state, player) {
+  const { core, salt } = fin;
+  const swap = fin.swap || null;
+  const fail = (detail) => ({ ok: false, checked: answers.length, detail });
+  if (!(await verify(core, salt, coreHash))) return fail({ kind: 'commit', core });
+  const bad = R.checkSwap(state, player, core, swap);
+  if (bad) return fail({ ...bad, core });
+  const pub = state.swaps?.[player];
+  if (swap && !(await verify(swap.core, swap.salt, pub.hash))) return fail({ kind: 'swap-commit', round: pub.round, core });
+  const lies = R.findLies(core, answers, swap);
+  if (lies.length) return fail({ kind: 'answer', core, swap, lie: lies[0] });
   return { ok: true, checked: answers.length };
+}
+
+// Подмена из final соперника: только ожидаемая форма.
+const swapShape = (x) => (x && Number.isInteger(x.core) && typeof x.salt === 'string' && Number.isInteger(x.round)
+  ? { core: x.core, salt: x.salt, round: x.round } : null);
+
+// Подмена для экрана финала: раунд публичный; с какой фишки на какую — когда владелец раскрыл её в final.
+function swapInfo(pub, core, swap) {
+  if (!pub) return null;
+  return swap && Number.isInteger(core) ? { round: pub.round, from: core, to: swap.core } : { round: pub.round };
+}
+
+// Приказы с подменой уходят в сеть без номера цели: только отпечаток commit(цель, соль).
+// Возвращает { orders, pending } — pending хранит владелец до конца партии.
+async function sealSwap(orders, round) {
+  if (orders?.action?.type !== 'swap') return { orders, pending: null };
+  const salt = makeSalt();
+  const core = orders.action.target;
+  const hash = await commit(core, salt);
+  return { orders: { ...orders, action: { type: 'swap', hash } }, pending: { core, salt, round } };
 }
 
 // Все три фишки игрока раскрыты как «пустышка» — так не бывает, ядро одно из трёх.
@@ -273,8 +307,11 @@ export function createHost(ui) {
   const M = {
     stage: 'lobby', // lobby | core | planning | answers | replay | over
     state: null,
+    walls: [], // перегородки текущей партии
     prev: null,
     core: null, salt: null, coreHash: null,
+    swap: null, // своя подмена { core, salt, round } — тайна до final
+    swapPending: null, // подмена в приказах текущего раунда
     guestCoreHash: null,
     r: null, // данные раунда
     ask: null, // ожидаемые ответы гостя
@@ -330,7 +367,7 @@ export function createHost(ui) {
 
   function endByForfeit(loser) {
     clearRoundTimers();
-    M.state = R.forfeit(M.state || R.createGame({ hostCore: M.core }), loser);
+    M.state = R.forfeit(M.state || R.createGame({ hostCore: M.core, walls: M.walls }), loser);
     M.stage = 'over';
     link.send('forfeit', { loser });
     ui.disconnected(false);
@@ -340,19 +377,21 @@ export function createHost(ui) {
   function newMatch() {
     clearRoundTimers();
     Object.assign(M, {
-      stage: 'core', state: null, prev: null, core: null, salt: null, coreHash: null, guestCoreHash: null,
+      stage: 'core', state: null, prev: null, core: null, salt: null, coreHash: null, guestCoreHash: null, swap: null, swapPending: null,
       r: null, ask: null, lastReplay: null, guestFinal: null, honesty: null,
+      walls: randomWalls(), // реванш = новая раскладка
     });
     M.ready.clear();
     M.rematch.clear();
     link.clearOutbox();
-    link.send('newMatch');
-    ui.corePick();
+    link.send('newMatch', { walls: M.walls });
+    ui.corePick(M.walls);
   }
 
   function sendSnapshot() {
     link.send('snapshot', {
       stage: M.stage,
+      walls: M.walls,
       hostCoreHash: M.coreHash,
       guestCoreKnown: !!M.guestCoreHash,
       view: M.state ? R.viewFor(M.state, 'guest') : null,
@@ -371,7 +410,7 @@ export function createHost(ui) {
 
   function maybeStart() {
     if (M.stage === 'core' && M.coreHash && M.guestCoreHash) {
-      M.state = R.createGame({ hostCore: M.core });
+      M.state = R.createGame({ hostCore: M.core, walls: M.walls });
       startRound();
     }
   }
@@ -384,7 +423,7 @@ export function createHost(ui) {
     const deadline = Date.now() + R.ROUND_SECONDS * 1000;
     M.r = { commits: {}, reveals: {}, deadline, revealSent: false };
     link.send('round', { round: M.state.round, view: R.viewFor(M.state, 'guest'), remainingMs: R.ROUND_SECONDS * 1000 });
-    ui.planning({ view: R.viewFor(M.state, 'host'), deadline, round: M.state.round, core: M.core });
+    ui.planning({ view: R.viewFor(M.state, 'host'), deadline, round: M.state.round, core: R.coreAt(M.core, M.swap, M.state.round) });
     const round = M.state.round;
     // Дедлайн хоста: свои приказы не отправлены — стоим.
     roundTimers.push(setTimeout(() => {
@@ -420,6 +459,9 @@ export function createHost(ui) {
     } else {
       const salt = makeSalt();
       M.r.commits.host = 'pending';
+      const sealed = await sealSwap(orders, round);
+      orders = sealed.orders;
+      M.swapPending = sealed.pending;
       const hash = await commit(orders, salt);
       M.r.commits.host = hash;
       M.r.reveals.host = { orders, salt };
@@ -452,15 +494,22 @@ export function createHost(ui) {
     M.prev = M.state;
     const { state } = R.resolveRound(M.state, { host: M.r.reveals.host.orders, guest: M.r.reveals.guest ?? null });
     M.state = state;
+    // Своя подмена считается, только если судья её принял (есть в публичных swaps).
+    if (M.swapPending && state.swaps?.host?.round === M.prev.round) M.swap = M.swapPending;
+    M.swapPending = null;
+    const myCore = R.coreAt(M.core, M.swap, M.prev.round);
     const hostIds = state.pendingReveals.filter((id) => id.startsWith('h'));
     const guestIds = state.pendingReveals.filter((id) => id.startsWith('g'));
-    const scanTarget = state.pendingScan?.targetId ?? null;
-    M.ask = { answers: {}, scan: null, guestIds, needScan: scanTarget?.startsWith('g') || false };
+    // Сканировать в одном раунде могут оба: скан хоста ждёт ответа гостя, на скан гостя хост отвечает сам.
+    const scanOf = (by) => state.pendingScans.find((x) => x.by === by)?.targetId ?? null;
+    const hostScan = scanOf('host'), guestScan = scanOf('guest');
+    M.ask = { answers: {}, scan: null, ownScan: null, guestIds, needScan: !!hostScan };
     // Свои фишки хост раскрывает сам.
-    for (const id of hostIds) M.ask.answers[id] = R.answerFor(M.core, piece(id));
-    if (scanTarget?.startsWith('h')) M.ask.scan = R.answerFor(M.core, piece(scanTarget));
-    if (guestIds.length || M.ask.needScan) {
-      link.send('ask', { round: M.prev.round, ids: guestIds, scanTarget: M.ask.needScan ? scanTarget : null });
+    for (const id of hostIds) M.ask.answers[id] = R.answerFor(myCore, piece(id));
+    if (guestScan) M.ask.ownScan = R.answerFor(myCore, piece(guestScan));
+    if (guestIds.length || hostScan) {
+      // guestSwap: судья принял подмену гостя в этом раунде (его приказы могли не дойти к дедлайну).
+      link.send('ask', { round: M.prev.round, ids: guestIds, scanTarget: hostScan, guestSwap: state.swaps?.guest?.round === M.prev.round });
     } else finishResolve();
   }
 
@@ -469,15 +518,17 @@ export function createHost(ui) {
   function finishResolve() {
     let s = M.state;
     if (s.pendingReveals.length) s = R.applyReveals(s, M.ask.answers);
-    if (s.pendingScan) s = R.applyScanAnswer(s, M.ask.scan);
+    if (M.ask.ownScan) s = R.applyScanAnswer(s, M.ask.ownScan, 'guest');
+    if (M.ask.needScan) s = R.applyScanAnswer(s, M.ask.scan, 'host');
     M.state = s;
     M.ask = null;
     M.stage = s.phase === 'over' ? 'over' : 'replay';
     M.lastReplay = { round: M.prev.round, prev: R.viewFor(M.prev, 'guest'), events: s.lastEvents, view: R.viewFor(s, 'guest') };
     link.send('replay', M.lastReplay);
     if (allDummies(s, 'guest')) return cheater({ kind: 'allDummies' });
-    ui.replay({ prev: R.viewFor(M.prev, 'host'), events: s.lastEvents, view: R.viewFor(s, 'host') });
-    if (M.stage === 'over') link.send('final', { core: M.core, salt: M.salt });
+    const mySwap = M.swap?.round === M.prev.round ? { from: M.core, to: M.swap.core } : null;
+    ui.replay({ prev: R.viewFor(M.prev, 'host'), events: s.lastEvents, view: R.viewFor(s, 'host'), mySwap });
+    if (M.stage === 'over') link.send('final', { core: M.core, salt: M.salt, swap: M.swap });
   }
 
   async function onMessage(m) {
@@ -527,7 +578,7 @@ export function createHost(ui) {
         }
         break;
       case 'final':
-        M.guestFinal = { core: m.core, salt: m.salt };
+        M.guestFinal = { core: m.core, salt: m.salt, swap: swapShape(m.swap) };
         await runHonesty();
         break;
       case 'rematch':
@@ -545,7 +596,7 @@ export function createHost(ui) {
   async function runHonesty() {
     if (!M.guestFinal || M.stage !== 'over') return;
     const answers = R.answersOf(M.state, 'guest', 'host');
-    M.honesty = await checkHonesty(M.guestCoreHash, M.guestFinal.core, M.guestFinal.salt, answers);
+    M.honesty = await checkHonesty(M.guestCoreHash, M.guestFinal, answers, M.state, 'guest');
     if (!M.honesty.ok) cheater(M.honesty.detail);
     else ui.honesty(finalInfo());
   }
@@ -566,7 +617,9 @@ export function createHost(ui) {
       state: M.state,
       view: M.state ? R.viewFor(M.state, 'host') : null,
       me: 'host',
-      cores: { host: M.core, guest: M.guestFinal?.core ?? null },
+      // Ядра на конец партии (после подмены).
+      cores: { host: R.coreAt(M.core, M.swap, Infinity), guest: M.guestFinal ? R.coreAt(M.guestFinal.core, M.guestFinal.swap, Infinity) : null },
+      swaps: { host: swapInfo(M.state?.swaps?.host, M.core, M.swap), guest: swapInfo(M.state?.swaps?.guest, M.guestFinal?.core, M.guestFinal?.swap) },
       honesty: M.honesty,
     };
   }
@@ -625,6 +678,7 @@ export function createGuest(ui, roomId) {
   const G = {
     stage: 'connecting', // connecting | core | planning | answers | replay | over
     everConnected: false,
+    walls: [], // перегородки текущей партии (от хоста в newMatch)
     view: null,
     prevView: null,
     core: null, salt: null, coreHash: null,
@@ -690,7 +744,7 @@ export function createGuest(ui, roomId) {
   }
 
   function reset() {
-    Object.assign(G, { stage: 'core', view: null, prevView: null, core: null, salt: null, coreHash: null, hostCoreHash: null, r: null, hostFinal: null, honesty: null, forfeit: null });
+    Object.assign(G, { stage: 'core', view: null, prevView: null, core: null, salt: null, coreHash: null, hostCoreHash: null, r: null, hostFinal: null, honesty: null, forfeit: null, swap: null, swapPending: null });
     link.clearOutbox();
   }
 
@@ -708,7 +762,8 @@ export function createGuest(ui, roomId) {
         break;
       case 'newMatch':
         reset();
-        ui.corePick();
+        G.walls = cleanWalls(m.walls);
+        ui.corePick(G.walls);
         break;
       case 'coreCommit':
         if (typeof m.hash === 'string') {
@@ -740,15 +795,17 @@ export function createGuest(ui, roomId) {
         break;
       case 'ask': {
         if (G.core === null || !G.view) return;
+        // Отвечаем по ядру этого раунда: подмена в приказах раунда уже действует, если судья её принял.
+        const core = R.coreAt(G.core, G.swap || (m.guestSwap ? G.swapPending : null), m.round);
         const answers = {};
         for (const id of m.ids || []) {
           const p = G.view.pieces.find((q) => q.id === id && q.owner === 'guest');
-          if (p) answers[id] = R.answerFor(G.core, p);
+          if (p) answers[id] = R.answerFor(core, p);
         }
         let scan = null;
         if (m.scanTarget) {
           const p = G.view.pieces.find((q) => q.id === m.scanTarget && q.owner === 'guest');
-          if (p) scan = R.answerFor(G.core, p);
+          if (p) scan = R.answerFor(core, p);
         }
         G.stage = 'answers';
         link.send('answers', { round: m.round, answers, scan });
@@ -761,7 +818,7 @@ export function createGuest(ui, roomId) {
         applySnapshot(m);
         break;
       case 'final':
-        G.hostFinal = { core: m.core, salt: m.salt };
+        G.hostFinal = { core: m.core, salt: m.salt, swap: swapShape(m.swap) };
         await runHonesty();
         break;
       case 'forfeit':
@@ -786,7 +843,7 @@ export function createGuest(ui, roomId) {
     G.view = view;
     G.r = { round, hostCommit: undefined, myCommit: undefined, revealSent: false };
     link.clearOutbox();
-    ui.planning({ view, deadline: Date.now() + remainingMs, round, core: G.core });
+    ui.planning({ view, deadline: Date.now() + remainingMs, round, core: R.coreAt(G.core, G.swap, round) });
   }
 
   function showReplay(m) {
@@ -795,18 +852,25 @@ export function createGuest(ui, roomId) {
     G.prevView = m.prev;
     G.view = m.view;
     G.stage = m.view.phase === 'over' ? 'over' : 'replay';
+    // Своя подмена состоялась, только если судья её принял.
+    if (G.swapPending?.round === m.round) {
+      if (m.view.swaps?.guest?.round === m.round) G.swap = G.swapPending;
+      G.swapPending = null;
+    }
     if (allDummies(m.view, 'host')) return cheater({ kind: 'allDummies' });
-    ui.replay({ prev: m.prev, events: m.events, view: m.view });
+    const mySwap = G.swap?.round === m.round ? { from: G.core, to: G.swap.core } : null;
+    ui.replay({ prev: m.prev, events: m.events, view: m.view, mySwap });
     if (G.stage === 'over') {
-      link.send('final', { core: G.core, salt: G.salt });
+      link.send('final', { core: G.core, salt: G.salt, swap: G.swap });
       runHonesty();
     }
   }
 
   function applySnapshot(s) {
     if (s.hostCoreHash) G.hostCoreHash = s.hostCoreHash;
+    if (s.walls) G.walls = cleanWalls(s.walls);
     if (s.stage === 'core') {
-      if (G.stage !== 'core') { reset(); ui.corePick(); }
+      if (G.stage !== 'core') { reset(); ui.corePick(G.walls); }
       else if (G.coreHash) link.resend();
     } else if (s.stage === 'planning') {
       if (!G.r || G.r.round !== s.round) startPlanning(s.round, s.view, s.remainingMs);
@@ -819,7 +883,7 @@ export function createGuest(ui, roomId) {
   async function runHonesty() {
     if (!G.hostFinal || G.stage !== 'over' || !G.view) return;
     const answers = R.answersOf(G.view, 'host', 'guest');
-    G.honesty = await checkHonesty(G.hostCoreHash, G.hostFinal.core, G.hostFinal.salt, answers);
+    G.honesty = await checkHonesty(G.hostCoreHash, G.hostFinal, answers, G.view, 'host');
     if (!G.honesty.ok) cheater(G.honesty.detail);
     else ui.honesty(finalInfo());
   }
@@ -834,7 +898,8 @@ export function createGuest(ui, roomId) {
       state: G.view,
       view: G.view,
       me: 'guest',
-      cores: { guest: G.core, host: G.hostFinal?.core ?? null },
+      cores: { guest: R.coreAt(G.core, G.swap, Infinity), host: G.hostFinal ? R.coreAt(G.hostFinal.core, G.hostFinal.swap, Infinity) : null },
+      swaps: { guest: swapInfo(G.view?.swaps?.guest, G.core, G.swap), host: swapInfo(G.view?.swaps?.host, G.hostFinal?.core, G.hostFinal?.swap) },
       honesty: G.honesty,
     };
   }
@@ -858,9 +923,11 @@ export function createGuest(ui, roomId) {
         r.myCommit = null;
       } else {
         r.myCommit = 'pending';
-        r.orders = orders;
+        const sealed = await sealSwap(orders, r.round);
+        r.orders = sealed.orders;
+        G.swapPending = sealed.pending;
         r.salt = makeSalt();
-        r.myCommit = await commit(orders, r.salt);
+        r.myCommit = await commit(r.orders, r.salt);
       }
       link.send('ordersCommit', { round: r.round, hash: r.myCommit });
       maybeReveal();

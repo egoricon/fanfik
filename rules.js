@@ -26,6 +26,27 @@ export const START = {
   guest: [0, 1, 2].map((i) => ({ r: 0, c: SIZE - 1 - i })),
 };
 
+// Перегородки (укрытия) стоят на границе между соседними клетками: через них нельзя
+// шагнуть, и пуля в них упирается. Отрезок перегородки { r, c, side }:
+//   side 'h' — между (r,c) и (r+1,c) (горизонтальная линия под клеткой),
+//   side 'v' — между (r,c) и (r,c+1) (вертикальная линия справа от клетки).
+// Раскладку на партию выбирает судья (случайность живёт вне rules.js) из этого набора.
+// В раскладке 2 перегородки по 2 клетки длиной; раскладки точечно-симметричны, как и старт.
+const h = (r, c) => ({ r, c, side: 'h' });
+const v = (r, c) => ({ r, c, side: 'v' });
+export const WALL_LAYOUTS = [
+  [h(1, 1), h(1, 2), h(2, 2), h(2, 3)],
+  [v(1, 1), v(2, 1), v(2, 2), v(3, 2)],
+  [h(1, 0), h(1, 1), h(2, 3), h(2, 4)],
+  [v(1, 2), v(2, 2), v(2, 1), v(3, 1)],
+];
+
+// Есть ли перегородка на пути из клетки (r,c) в соседнюю по направлению dir.
+export function crossesWall(walls, r, c, dir) {
+  const edge = dir === 'down' ? h(r, c) : dir === 'up' ? h(r - 1, c) : dir === 'right' ? v(r, c) : v(r, c - 1);
+  return (walls || []).find((w) => w.r === edge.r && w.c === edge.c && w.side === edge.side) || null;
+}
+
 export function other(player) {
   return player === 'host' ? 'guest' : 'host';
 }
@@ -45,7 +66,8 @@ export function inBounds(r, c) {
 const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
 
 // Новая партия. cores необязательны: ядро соперника судья может и не знать (сетевой режим).
-export function createGame({ hostCore = null, guestCore = null } = {}) {
+// walls — перегородки [{r,c,side}], по умолчанию поле без перегородок.
+export function createGame({ hostCore = null, guestCore = null, walls = [] } = {}) {
   const pieces = [];
   for (const owner of PLAYERS) {
     START[owner].forEach((pos, index) => {
@@ -56,10 +78,15 @@ export function createGame({ hostCore = null, guestCore = null } = {}) {
     round: 1,
     phase: 'planning', // planning | reveal | over
     pieces,
+    walls: walls.map((w) => ({ r: w.r, c: w.c, side: w.side })),
     scanUsed: { host: false, guest: false },
+    swapUsed: { host: false, guest: false },
+    // Публичный факт подмены ядра: { round, hash } — раунд и отпечаток цели, сама цель тайна до конца партии.
+    swaps: { host: null, guest: null },
     reveals: {}, // публичные раскрытия уничтоженных: pieceId -> 'core' | 'dummy'
+    revealRound: {}, // pieceId -> раунд раскрытия (нужен для проверки ответов с учётом подмены)
     pendingReveals: [], // уничтоженные фишки, ждущие ответа владельца
-    pendingScan: null, // { by, targetId } — скан, ждущий ответа владельца цели
+    pendingScans: [], // [{ by, targetId }] — сканы, ждущие ответа владельца цели (оба могут сканировать в одном раунде)
     lastEvents: [],
     result: null, // { winner: 'host' | 'guest' | null, reason }
     private: {
@@ -97,13 +124,21 @@ export function normalizeOrders(state, player, orders) {
     if (Number.isInteger(a.target) && target && target.alive && !state.scanUsed[player]) {
       out.action = { type: 'scan', target: a.target };
     }
+  } else if (a && a.type === 'swap') {
+    // Подмена ядра: в приказах только отпечаток новой цели. На живую ли фишку она,
+    // судья проверить не может — это ловит финальная проверка (checkSwap).
+    const aliveCount = mine.filter((p) => p.alive).length;
+    if (typeof a.hash === 'string' && /^[0-9a-f]{64}$/.test(a.hash) && !state.swapUsed?.[player] && aliveCount >= 2) {
+      out.action = { type: 'swap', hash: a.hash };
+    }
   }
   return out;
 }
 
 // Разрешение движений (правило 4). pieces: живые фишки { id, r, c }, dirs: id -> направление | null.
+// walls — перегородки: шаг через перегородку = «стоять» и не считается претензией на клетку.
 // Возвращает { positions: id -> {r,c}, moves: [{ id, from, to, ok, reason }] }.
-export function resolveMoves(pieces, dirs) {
+export function resolveMoves(pieces, dirs, walls = []) {
   const key = (r, c) => r * SIZE + c;
   const target = new Map();
   const reason = new Map(); // id -> причина блокировки
@@ -111,9 +146,10 @@ export function resolveMoves(pieces, dirs) {
     const d = DIRS[dirs[p.id]];
     const tr = d ? p.r + d.dr : p.r;
     const tc = d ? p.c + d.dc : p.c;
-    // Шаг за край поля считается «стоять».
-    target.set(p.id, inBounds(tr, tc) ? { r: tr, c: tc } : { r: p.r, c: p.c });
-    if (d && !inBounds(tr, tc)) reason.set(p.id, 'edge');
+    // Шаг за край поля или через перегородку считается «стоять».
+    const blocked = !inBounds(tr, tc) ? 'edge' : d && crossesWall(walls, p.r, p.c, dirs[p.id]) ? 'wall' : null;
+    target.set(p.id, blocked ? { r: p.r, c: p.c } : { r: tr, c: tc });
+    if (d && blocked) reason.set(p.id, blocked);
   }
   const wantsMove = (p) => {
     const t = target.get(p.id);
@@ -198,19 +234,22 @@ export function resolveMoves(pieces, dirs) {
 }
 
 // Трассировка выстрела: от позиции стрелка по прямой до первой фишки (любой, кроме самого стрелка).
-export function traceShot(pieces, shooter, dir) {
+// Перегородка останавливает пулю: end — последняя клетка перед ней, wall — сам отрезок.
+export function traceShot(pieces, shooter, dir, walls = []) {
   const d = DIRS[dir];
   let r = shooter.r + d.dr;
   let c = shooter.c + d.dc;
   let last = { r: shooter.r, c: shooter.c };
   while (inBounds(r, c)) {
+    const wall = crossesWall(walls, last.r, last.c, dir);
+    if (wall) return { hitId: null, end: last, wall: { ...wall } };
     const hit = pieces.find((p) => p.r === r && p.c === c && p.id !== shooter.id);
-    if (hit) return { hitId: hit.id, end: { r, c } };
+    if (hit) return { hitId: hit.id, end: { r, c }, wall: null };
     last = { r, c };
     r += d.dr;
     c += d.dc;
   }
-  return { hitId: null, end: last };
+  return { hitId: null, end: last, wall: null };
 }
 
 // Разрешение раунда: движения → выстрелы → горящее кольцо.
@@ -226,11 +265,25 @@ export function resolveRound(state, ordersByPlayer) {
   };
   const events = [];
   const alive = s.pieces.filter((p) => p.alive);
+  s.swapUsed ||= { host: false, guest: false };
+  s.swaps ||= { host: null, guest: null };
+  s.revealRound ||= {};
+  s.pendingScans = [];
+
+  // 0. Подмена ядра срабатывает в начале раунда, до движения: всё в этом раунде — уже про новое ядро.
+  for (const player of PLAYERS) {
+    const a = orders[player].action;
+    if (a?.type !== 'swap') continue;
+    s.swapUsed[player] = true;
+    s.swaps[player] = { round: s.round, hash: a.hash };
+    events.push({ type: 'swap', by: player, round: s.round });
+  }
 
   // 1. Движения, все одновременно.
   const dirs = {};
   for (const p of alive) dirs[p.id] = orders[p.owner].moves[p.index];
-  const { positions, moves } = resolveMoves(alive, dirs);
+  const walls = s.walls || [];
+  const { positions, moves } = resolveMoves(alive, dirs, walls);
   events.push(...moves);
   for (const p of alive) Object.assign(p, positions[p.id]);
 
@@ -242,13 +295,13 @@ export function resolveRound(state, ordersByPlayer) {
     if (!a) continue;
     if (a.type === 'shot') {
       const shooter = alive.find((p) => p.owner === player && p.index === a.piece);
-      const { hitId, end } = traceShot(alive, shooter, a.dir);
-      events.push({ type: 'shot', by: player, id: shooter.id, dir: a.dir, from: { r: shooter.r, c: shooter.c }, end, hitId });
+      const { hitId, end, wall } = traceShot(alive, shooter, a.dir, walls);
+      events.push({ type: 'shot', by: player, id: shooter.id, dir: a.dir, from: { r: shooter.r, c: shooter.c }, end, hitId, wall });
       if (hitId) hit.add(hitId);
     } else if (a.type === 'scan') {
       const target = s.pieces.find((p) => p.owner === other(player) && p.index === a.target);
       s.scanUsed[player] = true;
-      s.pendingScan = { by: player, targetId: target.id };
+      s.pendingScans.push({ by: player, targetId: target.id });
       events.push({ type: 'scan', by: player, targetId: target.id });
     }
   }
@@ -269,7 +322,7 @@ export function resolveRound(state, ordersByPlayer) {
   s.lastEvents = events;
   s.phase = 'reveal';
   // Если раскрывать нечего, раунд завершается сразу.
-  const done = s.pendingReveals.length === 0 && !s.pendingScan ? finishRound(s) : s;
+  const done = s.pendingReveals.length === 0 && !s.pendingScans.length ? finishRound(s) : s;
   return { state: done, events };
 }
 
@@ -287,21 +340,24 @@ export function applyReveals(state, answers) {
     const a = answers?.[id];
     if (a !== 'core' && a !== 'dummy') throw new Error('applyReveals: нет ответа для ' + id);
     s.reveals[id] = a;
+    (s.revealRound ||= {})[id] = s.round;
     s.lastEvents.push({ type: 'reveal', id, answer: a });
   }
   s.pendingReveals = [];
-  return s.pendingScan ? s : finishRound(s);
+  return s.pendingScans?.length ? s : finishRound(s);
 }
 
-// Ответ владельца цели на скан. Попадает только в приватную часть сканирующего.
-export function applyScanAnswer(state, answer) {
-  if (!state.pendingScan) throw new Error('applyScanAnswer: скана нет');
+// Ответ владельца цели на скан игрока by (по умолчанию — первый ждущий скан).
+// Попадает только в приватную часть сканирующего.
+export function applyScanAnswer(state, answer, by = state.pendingScans?.[0]?.by) {
+  const i = (state.pendingScans || []).findIndex((x) => x.by === by);
+  if (i < 0) throw new Error('applyScanAnswer: скана нет');
   if (answer !== 'core' && answer !== 'dummy') throw new Error('applyScanAnswer: неверный ответ');
   const s = clone(state);
-  const { by, targetId } = s.pendingScan;
+  const { targetId } = s.pendingScans[i];
   s.private[by].scans.push({ targetId, answer, round: s.round });
-  s.pendingScan = null;
-  return s.pendingReveals.length ? s : finishRound(s);
+  s.pendingScans.splice(i, 1);
+  return s.pendingReveals.length || s.pendingScans.length ? s : finishRound(s);
 }
 
 // Итог раунда: уничтожено ядро → поражение, оба ядра в одном раунде → ничья,
@@ -330,15 +386,41 @@ export function forfeit(state, loser) {
   return s;
 }
 
-// Проверка честности в конце партии: все ответы игрока согласуются с раскрытым ядром.
-// answers: [{ index, answer }]. Возвращает список несовпадений (пустой — всё честно).
-export function findLies(coreIndex, answers) {
-  if (!Number.isInteger(coreIndex) || coreIndex < 0 || coreIndex >= PIECES) {
+// Ядро, действующее в раунде round: до раунда подмены — исходное, начиная с него — новое.
+// swap: null | { core, round } (раскрывается владельцем в конце партии).
+// round = Infinity — ядро на конец партии; неизвестный раунд (null) — исходное ядро.
+export function coreAt(core, swap, round) {
+  return swap && typeof round === 'number' && round >= swap.round ? swap.core : core;
+}
+
+// Проверка честности в конце партии: каждый ответ игрока согласуется с ядром,
+// которое действовало в раунде этого ответа (с учётом подмены).
+// answers: [{ index, answer, round }]. Возвращает список несовпадений (пустой — всё честно).
+export function findLies(coreIndex, answers, swap = null) {
+  const valid = (i) => Number.isInteger(i) && i >= 0 && i < PIECES;
+  if (!valid(coreIndex) || (swap && !valid(swap.core))) {
     return [{ index: coreIndex, answer: null, expected: null, kind: 'bad-core' }];
   }
-  return answers
-    .filter((a) => a.answer !== (a.index === coreIndex ? 'core' : 'dummy'))
-    .map((a) => ({ ...a, expected: a.index === coreIndex ? 'core' : 'dummy' }));
+  const expected = (a) => (a.index === coreAt(coreIndex, swap, a.round) ? 'core' : 'dummy');
+  return answers.filter((a) => a.answer !== expected(a)).map((a) => ({ ...a, expected: expected(a) }));
+}
+
+// Проверка подмены в конце партии (всё, кроме отпечатка: его сверяет crypto.js в сетевом слое).
+// swap — то, что игрок раскрыл в final: null | { core, salt, round }.
+// Возвращает null, если всё честно, иначе { kind, ... }.
+export function checkSwap(state, player, core, swap) {
+  const pub = state.swaps?.[player] || null;
+  if (pub && !swap) return { kind: 'swap-missing', round: pub.round };
+  if (!pub && swap) return { kind: 'swap-extra' };
+  if (!pub) return null;
+  if (!Number.isInteger(swap.core) || swap.core < 0 || swap.core >= PIECES) return { kind: 'swap-bad', round: pub.round };
+  if (swap.round !== pub.round) return { kind: 'swap-round', round: pub.round };
+  if (swap.core === core) return { kind: 'swap-same', round: pub.round, index: swap.core };
+  // Фишка должна быть жива в начале раунда подмены: сбитые раньше раскрыты в раунде < R.
+  const target = state.pieces.find((p) => p.owner === player && p.index === swap.core);
+  const deadRound = state.revealRound?.[target.id];
+  if (Number.isInteger(deadRound) && deadRound < pub.round) return { kind: 'swap-dead', round: pub.round, index: swap.core };
+  return null;
 }
 
 // Все ответы, которые игрок `player` дал за партию и которые видит `viewer`:
@@ -346,11 +428,13 @@ export function findLies(coreIndex, answers) {
 export function answersOf(state, player, viewer) {
   const out = [];
   for (const p of state.pieces) {
-    if (p.owner === player && state.reveals[p.id]) out.push({ index: p.index, answer: state.reveals[p.id], kind: 'hit' });
+    if (p.owner === player && state.reveals[p.id]) {
+      out.push({ index: p.index, answer: state.reveals[p.id], kind: 'hit', round: state.revealRound?.[p.id] ?? null });
+    }
   }
   for (const sc of state.private[viewer]?.scans || []) {
     const p = state.pieces.find((q) => q.id === sc.targetId);
-    if (p && p.owner === player) out.push({ index: p.index, answer: sc.answer, kind: 'scan' });
+    if (p && p.owner === player) out.push({ index: p.index, answer: sc.answer, kind: 'scan', round: sc.round });
   }
   return out;
 }

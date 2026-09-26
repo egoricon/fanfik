@@ -127,6 +127,12 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .scanlabel { position: absolute; top: 0; left: 0; width: var(--cs); height: var(--cs); display: flex; align-items: flex-end; justify-content: center; }
 .scanlabel span { transform: translateY(8px); background: var(--shot); color: var(--ink); font-weight: 900; font-size: 10px; border-radius: 999px; padding: 2px 6px; border: 2px solid #fff; white-space: nowrap; }
 
+/* Перегородка: объёмная планка в щели между клетками («Игрушка»: светлая грань и тень снизу) */
+.wall { position: absolute; top: 0; left: 0; border-radius: 6px; background: var(--bg-deep); z-index: 1;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.28), 0 3px 0 var(--ink); }
+.fx .crumbs { position: absolute; top: 0; left: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 4px solid var(--shot); animation: crumbs 520ms ease-out both; }
+@keyframes crumbs { from { transform: scale(.3); opacity: 1 } to { transform: scale(1.6); opacity: 0 } }
+
 /* Фишки */
 .pc { position: absolute; top: 0; left: 0; width: var(--cs); height: var(--cs); display: flex; align-items: center; justify-content: center;
   transition: transform 350ms cubic-bezier(.3,1.4,.5,1); }
@@ -210,7 +216,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .big { font-weight: 900; font-size: clamp(48px, 18vw, 74px); line-height: 1; color: #fff; transform: rotate(-3deg); margin: 8px 0 4px;
   --o: var(--me);
   text-shadow: 4px 0 0 var(--o), -4px 0 0 var(--o), 0 4px 0 var(--o), 0 -4px 0 var(--o), 3px 3px 0 var(--o), -3px -3px 0 var(--o), 3px -3px 0 var(--o), -3px 3px 0 var(--o), 0 12px 0 var(--ink); }
-.big.lose { --o: var(--op); font-size: clamp(40px, 14vw, 58px); } .big.draw { --o: var(--shot); }
+.big.lose { --o: var(--op); font-size: min(12vw, 48px); } /* «ПОРАЖЕНИЕ» длинное: помещается в ширину телефона */ .big.draw { --o: var(--shot); }
 .reveal-row { display: flex; gap: 12px; align-items: center; }
 .rv54 { width: 54px; height: 54px; border-radius: 50%; border: 3px solid #fff; position: relative; display: flex; align-items: center; justify-content: center; font-weight: 800; }
 .rv54.me { background: var(--me); box-shadow: 0 4px 0 var(--me-deep); } .rv54.op { background: var(--op); box-shadow: 0 4px 0 var(--op-deep); }
@@ -258,9 +264,23 @@ body.dimmed #app { opacity: .3; filter: blur(2px); pointer-events: none; }
 @keyframes pop-in { from { transform: scale(.9); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 @keyframes scanpulse { from { transform: scale(.6); opacity: 1 } to { transform: scale(1.3); opacity: 0 } }
 
+/* Подмена ядра: будущее ядро, цели, мерцание в повторе, перелёт маркера */
+.disc .core.next { background: transparent; border-style: dashed; animation: corenext 1s ease-in-out infinite; }
+@keyframes corenext { 0%,100% { transform: rotate(45deg) scale(1) } 50% { transform: rotate(45deg) scale(.7) } }
+.m.swaptarget::before { content: ''; width: 90%; height: 90%; border-radius: 50%; border: 3px dashed var(--me); animation: pulse 1s infinite; }
+.disc.swapflick { animation: swapflick 1.3s ease-in-out both; }
+@keyframes swapflick { 0%,100% { opacity: 1; transform: scale(1) } 15%,45%,75% { opacity: .3; transform: scale(.9) } 30%,60%,90% { opacity: 1; transform: scale(1.06) } }
+.fx .coremove { position: absolute; top: 0; left: 0; width: 15px; height: 15px; margin: -10px 0 0 -10px; background: var(--shot); border: 3px solid #fff; border-radius: 4px; box-sizing: content-box; z-index: 4; }
+.tile .sw { display: block; color: var(--shot); font-weight: 800; white-space: nowrap; }
+.tile.active .sw { color: var(--shot-deep); }
+.scanlabel span.old { background: #fff; color: var(--muted); border-color: var(--shot); }
+.scanlabel.l { justify-content: flex-start; } .scanlabel.r { justify-content: flex-end; }
+.actions .btn.act { flex: 0 0 auto; min-width: 76px; padding: 0 12px; flex-direction: column; line-height: 1.1; font-size: 15px; }
+.actions .btn.act small { font-size: 12px; font-weight: 700; opacity: .7; }
+
 /* Меньше движения: без тряски, покачивания и замедления; трассер и надпись остаются */
 @media (prefers-reduced-motion: reduce) {
-  .chip, .disc.danger, .board-wrap.shaking, .dot { animation: none !important; }
+  .chip, .disc.danger, .disc.swapflick, .disc .core.next, .board-wrap.shaking, .dot { animation: none !important; }
   .slowpill { display: none; }
 }
 
@@ -445,6 +465,12 @@ const sfx = {
   scan: () => [0, 0.18].forEach((at) => tone({ type: 'sine', f0: 700, f1: 1400, dur: 0.16, gain: 0.06, at })),
   fire: () => { for (let i = 0; i < 6; i++) noise({ dur: 0.12, gain: 0.12, freq: 1800 + i * 300, q: 2, at: i * 0.07 }); },
   tick: () => tone({ type: 'sine', f0: 1100, dur: 0.03, gain: 0.04 }),
+  thud: () => { tone({ type: 'sine', f0: 140, f1: 60, dur: 0.14, gain: 0.3 }); noise({ dur: 0.18, gain: 0.18, freq: 900, q: 1.2 }); },
+  // Подмена: шорох и переливы вверх-вниз.
+  swap: () => {
+    noise({ dur: 0.35, gain: 0.07, freq: 2600, q: 1.4 });
+    [[520, 880], [880, 520], [620, 1040]].forEach(([f0, f1], i) => tone({ type: 'triangle', f0, f1, dur: 0.14, gain: 0.09, at: 0.05 + i * 0.12 }));
+  },
   // Финал: победа — вверх, поражение — вниз, ничья — два ровных тона.
   win: () => [523, 659, 784, 1047].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.22, gain: 0.16, at: i * 0.12 })),
   lose: () => [392, 330, 262, 196].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.26, gain: 0.14, at: i * 0.15 })),
@@ -456,11 +482,11 @@ const sfx = {
 function createBoard(viewer) {
   const cells = Array.from({ length: 25 }, (_, i) => `<div class="cell" data-i="${i}"></div>`).join('');
   const wrap = el(`<div class="board-wrap"><div class="board"><div class="grid">${cells}</div>
-    <div class="layer marks"></div><div class="layer pieces"></div><div class="layer over"></div><div class="layer fx"></div></div></div>`);
+    <div class="layer walls"></div><div class="layer marks"></div><div class="layer pieces"></div><div class="layer over"></div><div class="layer fx"></div></div></div>`);
   const board = wrap.firstElementChild;
   const layer = board.querySelector('.pieces');
   const b = {
-    wrap, board, viewer, cell: 0, step: 0, els: new Map(), pos: new Map(),
+    wrap, board, viewer, cell: 0, step: 0, els: new Map(), pos: new Map(), walls: [],
     marks: board.querySelector('.marks'), over: board.querySelector('.over'), fx: board.querySelector('.fx'),
     measure() {
       const w = layer.clientWidth;
@@ -469,11 +495,38 @@ function createBoard(viewer) {
       b.step = b.cell + 6;
       board.style.setProperty('--cs', b.cell + 'px');
       for (const [id, p] of b.pos) b.place(id, p.r, p.c, false);
+      b.setWalls(b.walls);
+    },
+    // Перегородки партии: отрезок на границе клеток (абсолютные координаты).
+    // Рисуется по двум клеткам, которые он разделяет, поэтому поворот поля для гостя учитывается сам.
+    setWalls(walls = []) {
+      b.walls = walls;
+      const T = Math.max(8, b.cell * 0.14); // толщина планки
+      // Прямоугольник отрезка на экране: по двум клеткам, которые он разделяет.
+      const rect = (w) => {
+        const a = b.xy(w.r, w.c);
+        const o = w.side === 'h' ? b.xy(w.r + 1, w.c) : b.xy(w.r, w.c + 1);
+        const x0 = Math.min(a.x, o.x), y0 = Math.min(a.y, o.y);
+        const horiz = a.x === o.x; // клетки одна под другой — планка горизонтальная
+        const mid = (horiz ? y0 : x0) + b.cell + (b.step - b.cell) / 2;
+        return horiz ? { x: x0 - 3, y: mid - T / 2, w: b.cell + 6, h: T } : { x: mid - T / 2, y: y0 - 3, w: T, h: b.cell + 6 };
+      };
+      // Соседние отрезки одной линии склеиваем в одну планку, без шва.
+      const bars = [];
+      for (const q of walls.map(rect).sort((p, q) => p.y - q.y || p.x - q.x)) {
+        const last = bars.find((p) => (p.h === T && q.h === T && p.y === q.y && Math.abs(p.x + p.w - q.x) < 1)
+          || (p.w === T && q.w === T && p.x === q.x && Math.abs(p.y + p.h - q.y) < 1));
+        if (last && last.h === T && q.h === T && last.y === q.y) last.w = q.x + q.w - last.x;
+        else if (last) last.h = q.y + q.h - last.y;
+        else bars.push({ ...q });
+      }
+      board.querySelector('.layer.walls').innerHTML = bars
+        .map((p) => `<div class="wall" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px"></div>`).join('');
     },
     xy(r, c) { const v = toView(viewer, r, c); return { x: v.c * b.step, y: v.r * b.step }; },
     center(r, c) { const { x, y } = b.xy(r, c); return { x: x + b.cell / 2, y: y + b.cell / 2 }; },
     cellEl(r, c) { const v = toView(viewer, r, c); return board.querySelector(`.cell[data-i="${v.r * 5 + v.c}"]`); },
-    // Создаёт или обновляет фишку. opts: { core, dead, revealed, sel, dim, danger }
+    // Создаёт или обновляет фишку. opts: { core, nextCore, dead, revealed, sel, dim, danger }
     piece(p, opts = {}) {
       let node = b.els.get(p.id);
       if (!node) {
@@ -489,8 +542,9 @@ function createBoard(viewer) {
       if (opts.dim) d.classList.add('dim');
       if (opts.danger) d.classList.add('danger');
       d.querySelector('span').textContent = opts.dead ? '✕' : String(p.index + 1);
-      d.querySelector('.core')?.remove();
+      d.querySelectorAll('.core').forEach((x) => x.remove());
       if (opts.core && !opts.dead) d.append(el('<i class="core"></i>'));
+      else if (opts.nextCore && !opts.dead) d.append(el('<i class="core next"></i>')); // сюда переедет ядро после «Готово!»
       return node;
     },
     place(id, r, c, animate = true) {
@@ -525,13 +579,15 @@ function createBoard(viewer) {
 }
 
 // Все фишки состояния на доску.
-function drawPieces(b, state, { core = null, sel = null, dimOp = false, dangerFor = null } = {}) {
+function drawPieces(b, state, { core = null, nextCore = null, sel = null, dimOp = false, dangerFor = null } = {}) {
+  b.setWalls(state.walls || []);
   for (const p of state.pieces) {
     const mine = p.owner === b.viewer;
     b.piece(p, {
       dead: !p.alive,
       revealed: state.reveals[p.id],
       core: mine && core === p.index,
+      nextCore: mine && nextCore === p.index,
       sel: mine && sel === p.index,
       dim: dimOp && !mine,
       danger: dangerFor?.has(p.id),
@@ -547,6 +603,8 @@ const game = {
   cores: { host: null, guest: null },
   salts: { host: null, guest: null },
   orders: { host: null, guest: null },
+  swaps: { host: null, guest: null }, // подмена ядра { core, salt, round }, принятая судьёй
+  swapPending: { host: null, guest: null }, // подмена в приказах текущего раунда
   prev: null, // состояние до разрешения раунда — для повтора
   events: [],
 };
@@ -555,8 +613,11 @@ function startMatch() {
   game.state = null;
   game.cores = { host: null, guest: null };
   game.orders = { host: null, guest: null };
+  game.swaps = { host: null, guest: null };
+  game.swapPending = { host: null, guest: null };
+  game.walls = R.WALL_LAYOUTS[Math.floor(Math.random() * R.WALL_LAYOUTS.length)];
   NAMING = 'hotseat';
-  showPass('host', 'Выбор ядра', () => showCorePick('host', hotseatCore('host')));
+  showPass('host', 'Выбор ядра', () => showCorePick('host', hotseatCore('host'), undefined, game.walls));
 }
 
 // ---------- экран: передай телефон ----------
@@ -576,8 +637,8 @@ function showPass(player, what, next) {
 }
 
 // ---------- экран: выбор ядра ----------
-function showCorePick(player, onConfirm, who = `${NAME[player]}, с`) {
-  const state = R.createGame();
+function showCorePick(player, onConfirm, who = `${NAME[player]}, с`, walls = []) {
+  const state = R.createGame({ walls });
   let core = null;
   const salt = makeSalt();
   const screen = el(`<section class="screen duo">
@@ -629,9 +690,9 @@ function hotseatCore(player) {
   return (core, salt) => {
     game.cores[player] = core;
     game.salts[player] = salt;
-    if (player === 'host') showPass('guest', 'Выбор ядра', () => showCorePick('guest', hotseatCore('guest')));
+    if (player === 'host') showPass('guest', 'Выбор ядра', () => showCorePick('guest', hotseatCore('guest'), undefined, game.walls));
     else {
-      game.state = R.createGame({ hostCore: game.cores.host, guestCore: game.cores.guest });
+      game.state = R.createGame({ hostCore: game.cores.host, guestCore: game.cores.guest, walls: game.walls });
       nextPlanning('host');
     }
   };
@@ -646,20 +707,29 @@ function nextPlanning(player) {
   showPass(player, `Раунд ${round} · приказы`, () => showPlanning(player, {
     state: game.state,
     deadline: Date.now() + R.ROUND_SECONDS * 1000,
-    core: game.cores[player],
+    core: R.coreAt(game.cores[player], game.swaps[player], round),
     otherDone: game.orders[R.other(player)] !== null,
-    onSubmit: (orders) => {
-      game.orders[player] = orders;
+    onSubmit: async (orders) => {
+      game.orders[player] = await sealSwap(player, orders, round);
       if (player === 'host') nextPlanning('guest');
       else resolve();
     },
   }));
 }
 
+// Подмена уходит судье только отпечатком commit(цель, соль), как по сети; цель игрок хранит до конца партии.
+async function sealSwap(player, orders, round) {
+  if (orders?.action?.type !== 'swap') return orders;
+  const salt = makeSalt();
+  const core = orders.action.target;
+  game.swapPending[player] = { core, salt, round };
+  return { ...orders, action: { type: 'swap', hash: await commit(core, salt) } };
+}
+
 const HINTS = [
   `${TAP} фишку, затем соседнюю клетку — это шаг. Выстрел или скан — одно действие на весь раунд.`,
   'Выстрел: выбери фишку, нажми «Выстрел» и стрелку. Пуля летит с клетки после шага и бьёт первую фишку на пути — даже свою.',
-  '«Скан» один раз за игру тайно покажет, ядро ли чужая фишка. Жми «Готово!», пока не вышло время.',
+  '«Скан» один раз за игру тайно покажет, ядро ли чужая фишка. «Подмена» один раз тайно перенесёт твоё ядро на другую фишку. Жми «Готово!», пока не вышло время.',
 ];
 
 // ctx: { state, deadline, core, otherDone, onSubmit(orders) }.
@@ -669,9 +739,11 @@ function showPlanning(player, ctx) {
   const me = player;
   const fire = state.round >= R.FIRE_FROM_ROUND;
   const plan = { moves: [null, null, null], action: null };
-  let sel = null, mode = 'step', scanMode = false, hint = state.round === 1 ? 0 : -1;
+  let sel = null, mode = 'step', scanMode = false, swapMode = false, hint = state.round === 1 ? 0 : -1;
+  let sent = null; // отправленные приказы: после «Готово!» маркер ядра переезжает на цель подмены
   const deadline = ctx.deadline;
   const scans = state.private[me]?.scans || [];
+  const opSwap = state.swaps?.[R.other(me)] || null; // публичный факт подмены соперника
   const otherDone = ctx.otherDone;
   let locked = false;
 
@@ -690,8 +762,8 @@ function showPlanning(player, ctx) {
       <div id="edge"></div>
       <div class="tiles" id="tiles"></div>
       <div class="modes" id="modes"></div>
-      <p class="keys desk"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> фишка · <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> шаг · <kbd>Shift</kbd>+стрелка выстрел · <kbd>0</kbd> стоять · <kbd>S</kbd> скан · <kbd>Enter</kbd> готово</p>
-      <div class="actions"><button class="btn sec" id="scan"></button><button class="btn main" id="ready">Готово!</button></div>
+      <p class="keys desk"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> фишка · <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> шаг · <kbd>Shift</kbd>+стрелка выстрел · <kbd>0</kbd> стоять · <kbd>S</kbd> скан · <kbd>W</kbd> подмена · <kbd>Enter</kbd> готово</p>
+      <div class="actions"><button class="btn sec act" id="scan"></button><button class="btn sec act" id="swap"></button><button class="btn main" id="ready">Готово!</button></div>
     </div>
   </section>`);
   app.replaceChildren(screen);
@@ -707,12 +779,18 @@ function showPlanning(player, ctx) {
     const r = p.r + R.DIRS[d].dr, c = p.c + R.DIRS[d].dc;
     return R.inBounds(r, c) ? { r, c } : { r: p.r, c: p.c };
   };
+  // Подмена: раз за партию, пока живы хотя бы две свои фишки; цель — живая фишка, не текущее ядро.
+  const canSwap = () => !state.swapUsed?.[me] && mine().filter((p) => p.alive).length >= 2;
+  const swapTarget = (p) => p && p.alive && p.index !== ctx.core;
 
   function render() {
     // фишки
     const danger = new Set();
     if (fire) for (const p of mine()) { const t = target(p); if (p.alive && R.isEdge(t.r, t.c)) danger.add(p.id); }
-    drawPieces(b, state, { core: ctx.core, sel, dangerFor: danger });
+    const a = plan.action;
+    const swapTo = a?.type === 'swap' ? a.target : null;
+    const core = sent?.action?.type === 'swap' ? sent.action.target : ctx.core;
+    drawPieces(b, state, { core, nextCore: sent ? null : swapTo, sel, dangerFor: danger });
 
     // отметки: призраки, клетки для шага, стрелки выстрела, линия выстрела, цели скана
     const m = [];
@@ -728,39 +806,48 @@ function showPlanning(player, ctx) {
       const t = target(p);
       if (t.r !== p.r || t.c !== p.c) box(t.r, t.c, 'ghost');
     }
-    const a = plan.action;
     if (a?.type === 'shot') {
       const p = mine()[a.piece];
       const t = target(p);
       const from = b.center(t.r, t.c);
       const vd = dirToView(me, a.dir);
       const L = 5 * b.step - 6;
-      if (vd === 'up') m.push(`<div class="shotline v" style="transform:translate(${from.x - 3}px,0);height:${from.y - b.cell / 2}px"></div>`);
-      if (vd === 'down') m.push(`<div class="shotline v" style="transform:translate(${from.x - 3}px,${from.y + b.cell / 2}px);height:${L - from.y - b.cell / 2}px"></div>`);
-      if (vd === 'left') m.push(`<div class="shotline h" style="transform:translate(0,${from.y - 3}px);width:${from.x - b.cell / 2}px"></div>`);
-      if (vd === 'right') m.push(`<div class="shotline h" style="transform:translate(${from.x + b.cell / 2}px,${from.y - 3}px);width:${L - from.x - b.cell / 2}px"></div>`);
+      // Линия прицела — от края фишки до края поля или до перегородки.
+      const u = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[vd];
+      const start = { x: from.x + u[0] * b.cell / 2, y: from.y + u[1] * b.cell / 2 };
+      const tr = R.traceShot([], { id: '', r: t.r, c: t.c }, a.dir, state.walls);
+      let stop = { x: u[0] ? (u[0] > 0 ? L : 0) : from.x, y: u[1] ? (u[1] > 0 ? L : 0) : from.y };
+      if (tr.wall) { const ec = b.center(tr.end.r, tr.end.c); stop = { x: ec.x + u[0] * b.cell / 2, y: ec.y + u[1] * b.cell / 2 }; }
+      if (u[0] === 0) m.push(`<div class="shotline v" style="transform:translate(${from.x - 3}px,${Math.min(start.y, stop.y)}px);height:${Math.abs(stop.y - start.y)}px"></div>`);
+      else m.push(`<div class="shotline h" style="transform:translate(${Math.min(start.x, stop.x)}px,${from.y - 3}px);width:${Math.abs(stop.x - start.x)}px"></div>`);
     }
     if (a?.type === 'scan') {
       const t = state.pieces.find((q) => q.owner !== me && q.index === a.target);
       box(t.r, t.c, 'scantarget', '', true);
     }
     if (scanMode) for (const q of state.pieces) if (q.owner !== me && q.alive) box(q.r, q.c, 'scantarget', '', true);
-    if (sel !== null && !scanMode) {
+    if (swapMode) for (const q of mine()) if (swapTarget(q)) box(q.r, q.c, 'swaptarget', '', true);
+    if (sel !== null && !scanMode && !swapMode) {
       const p = mine()[sel];
       const base = mode === 'step' ? p : target(p);
       for (const d of Object.keys(R.DIRS)) {
         const r = base.r + R.DIRS[d].dr, c = base.c + R.DIRS[d].dc;
         if (!R.inBounds(r, c)) continue;
         const vd = ARROW[dirToView(me, d)];
+        if (mode === 'step' && R.crossesWall(state.walls, base.r, base.c, d)) continue; // через перегородку не шагнуть
         if (mode === 'step') box(r, c, 'stepcell', `<span>${vd}</span>`, true);
         else box(r, c, 'shotcell', `<span>${vd}</span>`, true);
       }
     }
-    // результаты своего скана видны только тебе
+    // результаты своего скана видны только тебе; после подмены соперника они могли устареть
     for (const s of scans) {
       const t = state.pieces.find((q) => q.id === s.targetId);
       const { x, y } = b.xy(t.r, t.c);
-      m.push(`<div class="scanlabel" style="transform:translate(${x}px,${y}px)"><span>${s.answer === 'core' ? 'ЯДРО' : 'пустышка'}</span></div>`);
+      const old = opSwap && opSwap.round > s.round;
+      // У края поля длинная подпись прижимается к краю, чтобы не вылезать за доску.
+      const vc = Math.round(x / b.step);
+      const side = old && vc === 0 ? ' l' : old && vc === 4 ? ' r' : '';
+      m.push(`<div class="scanlabel${side}" style="transform:translate(${x}px,${y}px)"><span class="${old ? 'old' : ''}">${s.answer === 'core' ? 'ЯДРО' : 'пустышка'}${old ? ' · до подмены' : ''}</span></div>`);
     }
     b.marks.innerHTML = m.join('');
     b.over.innerHTML = o.join('');
@@ -783,9 +870,14 @@ function showPlanning(player, ctx) {
       const d = plan.moves[p.index];
       let text = d ? `шаг ${ARROW[dirToView(me, d)]}` : (sel === p.index ? 'куда идём?' : 'стоит');
       if (a?.type === 'shot' && a.piece === p.index) text += ` <span class="sh">и выстрел ${ARROW[dirToView(me, a.dir)]}</span>`;
+      if (swapTo === p.index) text += '<span class="sw">◆ новое ядро</span>';
       return `<button class="tile ${sel === p.index ? 'active' : ''}" data-i="${p.index}"><b>${p.index + 1}</b>${text}</button>`;
     }).join('');
-    screen.querySelectorAll('.tile[data-i]').forEach((t) => (t.onclick = () => { sel = +t.dataset.i; mode = 'step'; scanMode = false; sfx.tap(); render(); }));
+    screen.querySelectorAll('.tile[data-i]').forEach((t) => (t.onclick = () => {
+      if (locked) return;
+      if (swapMode) { pickSwap(+t.dataset.i); return; }
+      sel = +t.dataset.i; mode = 'step'; scanMode = false; sfx.tap(); render();
+    }));
 
     // режим шаг/выстрел
     screen.querySelector('#modes').innerHTML = sel !== null
@@ -794,9 +886,24 @@ function showPlanning(player, ctx) {
 
     const scanBtn = screen.querySelector('#scan');
     const used = state.scanUsed[me];
-    scanBtn.disabled = used;
-    scanBtn.textContent = used ? 'Скан ×0' : a?.type === 'scan' ? 'Отменить' : scanMode ? 'Отмена' : 'Скан ×1';
+    scanBtn.disabled = used || locked;
+    scanBtn.innerHTML = used ? 'Скан<small>×0</small>' : a?.type === 'scan' ? 'Скан<small>отменить</small>' : scanMode ? 'Отмена' : 'Скан<small>×1</small>';
     scanBtn.classList.toggle('on', scanMode);
+
+    const swapBtn = screen.querySelector('#swap');
+    const swapUsed = !!state.swapUsed?.[me];
+    swapBtn.disabled = !canSwap() || locked;
+    swapBtn.innerHTML = swapUsed ? 'Подмена<small>×0</small>' : a?.type === 'swap' ? 'Подмена<small>отменить</small>' : swapMode ? 'Отмена' : 'Подмена<small>×1</small>';
+    swapBtn.classList.toggle('on', swapMode);
+  }
+
+  // Цель подмены: своя живая фишка, не текущее ядро. Подмена занимает слот действия (вместо выстрела или скана).
+  function pickSwap(n) {
+    const p = mine()[n];
+    if (p?.alive && p.index === ctx.core) { toast('Это и так твоё ядро, выбери другую фишку'); return; }
+    swapMode = false;
+    if (swapTarget(p)) { plan.action = { type: 'swap', target: n }; sel = null; sfx.tap(); }
+    render();
   }
 
   b.board.addEventListener('click', (ev) => {
@@ -807,6 +914,12 @@ function showPlanning(player, ctx) {
       scanMode = false;
       if (t) { plan.action = { type: 'scan', target: t.index }; sfx.tap(); }
       render();
+      return;
+    }
+    if (swapMode) {
+      const t = mine().find((q) => q.alive && q.r === cell.r && q.c === cell.c);
+      if (t) pickSwap(t.index);
+      else { swapMode = false; render(); }
       return;
     }
     if (sel !== null) {
@@ -828,7 +941,13 @@ function showPlanning(player, ctx) {
   screen.querySelector('#scan').onclick = () => {
     if (locked) return;
     if (plan.action?.type === 'scan') { plan.action = null; scanMode = false; }
-    else { scanMode = !scanMode; sel = null; }
+    else { scanMode = !scanMode; swapMode = false; sel = null; }
+    render();
+  };
+  screen.querySelector('#swap').onclick = () => {
+    if (locked || !canSwap()) return;
+    if (plan.action?.type === 'swap') { plan.action = null; swapMode = false; }
+    else { swapMode = !swapMode; scanMode = false; sel = null; }
     render();
   };
   screen.querySelector('#ready').onclick = () => submit(plan);
@@ -836,7 +955,8 @@ function showPlanning(player, ctx) {
   // Шаг выбранной фишки (dir — абсолютное направление). За край поля не шагаем.
   function setStep(dir) {
     const p = mine()[sel];
-    if (!R.inBounds(p.r + R.DIRS[dir].dr, p.c + R.DIRS[dir].dc)) return;
+    const r = p.r + R.DIRS[dir].dr, c = p.c + R.DIRS[dir].dc;
+    if (!R.inBounds(r, c) || R.crossesWall(state.walls, p.r, p.c, dir)) return;
     plan.moves[sel] = dir;
     sfx.tap();
     if (hint === 0) hint = 1;
@@ -864,12 +984,13 @@ function showPlanning(player, ctx) {
         if (t) { plan.action = { type: 'scan', target: n }; scanMode = false; sfx.tap(); render(); }
         return;
       }
+      if (swapMode) { pickSwap(n); return; }
       if (mine()[n].alive) { sel = n; mode = 'step'; sfx.tap(); render(); }
       return;
     }
     const vd = KEY_DIR[ev.code];
     if (vd) {
-      if (sel !== null && !scanMode) (ev.shiftKey || mode === 'shot' ? setShot : setStep)(dirToAbs(me, vd));
+      if (sel !== null && !scanMode && !swapMode) (ev.shiftKey || mode === 'shot' ? setShot : setStep)(dirToAbs(me, vd));
       return;
     }
     if (ev.code === 'Digit0' || ev.code === 'Numpad0' || ev.code === 'Backspace') {
@@ -877,8 +998,9 @@ function showPlanning(player, ctx) {
       return;
     }
     if (ev.code === 'KeyS') { screen.querySelector('#scan').click(); return; }
+    if (ev.code === 'KeyW') { screen.querySelector('#swap').click(); return; }
     if (ev.code === 'Enter' || ev.code === 'NumpadEnter') { submit(plan); return; }
-    if (ev.code === 'Escape') { sel = null; scanMode = false; render(); return; }
+    if (ev.code === 'Escape') { sel = null; scanMode = false; swapMode = false; render(); return; }
     return false;
   });
 
@@ -886,6 +1008,7 @@ function showPlanning(player, ctx) {
     if (locked) return;
     stopTimer();
     if (orders) sfx.ready();
+    sent = orders;
     lock(orders ? 'Приказы отправлены' : 'Время вышло');
     ctx.onSubmit(orders);
   }
@@ -893,12 +1016,13 @@ function showPlanning(player, ctx) {
   // После «Готово!» или дедлайна ввод закрыт, остаётся ждать соперника.
   function lock(text) {
     locked = true;
-    sel = null; scanMode = false;
+    sel = null; scanMode = false; swapMode = false;
     render();
     const ready = screen.querySelector('#ready');
     ready.disabled = true;
     ready.textContent = text;
-    screen.querySelector('#scan').disabled = true;
+    // Скан и подмена больше не нужны: освобождаем место под надпись на кнопке.
+    screen.querySelectorAll('.act').forEach((x) => (x.style.display = 'none'));
     screen.querySelector('#modes').innerHTML = '';
   }
 
@@ -937,18 +1061,25 @@ function showPlanning(player, ctx) {
 function resolve() {
   game.prev = game.state;
   let { state } = R.resolveRound(game.state, game.orders);
+  // Подмена действует, только если судья её принял; с этого раунда ответы — по новому ядру.
+  for (const pl of R.PLAYERS) {
+    if (game.swapPending[pl] && state.swaps?.[pl]?.round === game.prev.round) game.swaps[pl] = game.swapPending[pl];
+    game.swapPending[pl] = null;
+  }
+  const coreNow = (pl) => R.coreAt(game.cores[pl], game.swaps[pl], game.prev.round);
   // Владельцы честно отвечают «ядро/пустышка»: в hotseat оба ядра известны.
   if (state.pendingReveals.length) {
     const answers = {};
     for (const id of state.pendingReveals) {
       const p = state.pieces.find((q) => q.id === id);
-      answers[id] = R.answerFor(game.cores[p.owner], p);
+      answers[id] = R.answerFor(coreNow(p.owner), p);
     }
     state = R.applyReveals(state, answers);
   }
-  if (state.pendingScan) {
-    const t = state.pieces.find((q) => q.id === state.pendingScan.targetId);
-    state = R.applyScanAnswer(state, R.answerFor(game.cores[t.owner], t));
+  // Сканировать в одном раунде могут оба игрока.
+  for (const sc of [...(state.pendingScans || [])]) {
+    const t = state.pieces.find((q) => q.id === sc.targetId);
+    state = R.applyScanAnswer(state, R.answerFor(coreNow(t.owner), t), sc.by);
   }
   game.events = state.lastEvents;
   game.state = state;
@@ -963,8 +1094,9 @@ function resolve() {
 }
 
 // ---------- экран: повтор раунда ----------
-// opts: { viewer, prev, state, events, nextLabel, onNext }
-function showReplay({ viewer, prev, state, events, nextLabel, onNext }) {
+// opts: { viewer, prev, state, events, nextLabel, onNext, mySwap }
+// mySwap: { from, to } — своя подмена в этом раунде (только по сети: в hotseat экран видят оба).
+function showReplay({ viewer, prev, state, events, nextLabel, onNext, mySwap = null }) {
   stopTimer();
   const screen = el(`<section class="screen duo">
     <div class="col side">
@@ -983,7 +1115,7 @@ function showReplay({ viewer, prev, state, events, nextLabel, onNext }) {
   screen.querySelector('#board').replaceWith(b.wrap);
   b.measure();
   let token = 0;
-  const run = () => playReplay(b, screen, prev, state, events, viewer, ++token, () => token);
+  const run = () => playReplay(b, screen, prev, state, events, viewer, ++token, () => token, mySwap);
   screen.querySelector('#again').onclick = run;
   const next = screen.querySelector('#next');
   next.onclick = () => { token++; onNext(next); };
@@ -1008,7 +1140,7 @@ function whoName(player) {
   return player === NAMING ? 'Ты' : 'Соперник';
 }
 
-async function playReplay(b, screen, prev, finalState, events, viewer, my, current) {
+async function playReplay(b, screen, prev, finalState, events, viewer, my, current, mySwap = null) {
   const alive = () => current() === my;
   const byId = (id) => prev.pieces.find((p) => p.id === id);
   const logEl = screen.querySelector('#log');
@@ -1023,8 +1155,21 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
   await sleep(450);
   if (!alive()) return;
 
-  // 1. Шаги
+  // 0. Подмена ядра срабатывает до шагов. Факт видят оба, цель — только владелец.
   setPhase(0);
+  for (const e of events.filter((x) => x.type === 'swap')) {
+    const mine = e.by === viewer && NAMING !== 'hotseat';
+    await playSwap(b, prev, e, viewer, mine ? mySwap : null);
+    if (!alive()) return;
+    if (NAMING === 'hotseat') add(`<div><span class="rv">⇄ ${NAME[e.by]} подменил ядро. На какую фишку — знает только он.</span></div>`);
+    else if (mine) add(`<div><span class="rv">⇄ Ты подменил ядро${mySwap ? `: теперь это фишка ${mySwap.to + 1}` : ''}. Соперник видит только, что подмена была.</span></div>`);
+    else {
+      const stale = (prev.private?.[viewer]?.scans || []).some((s) => s.round < e.round && byId(s.targetId)?.owner === e.by);
+      add(`<div><span class="b">⇄</span> Соперник подменил ядро. На какую фишку — не видно.${stale ? ' Твой скан мог устареть.' : ''}</div>`);
+    }
+  }
+
+  // 1. Шаги
   const moves = events.filter((e) => e.type === 'move');
   if (moves.some((e) => e.ok)) sfx.step();
   if (moves.some((e) => !e.ok && e.reason !== 'edge')) setTimeout(sfx.bump, 120);
@@ -1070,7 +1215,7 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
     await playShot(b, screen, e, target, target ? reveal(target.id) : null, viewer, speed);
     if (!alive()) return;
     const who = p.owner === viewer ? '' : 'op';
-    add(`<div><span class="n ${who}">${p.index + 1}</span> выстрел ${WORD[dirToView(viewer, e.dir)]} — ${target ? `попал в ${pieceName(target, true)}!` : 'мимо'}</div>`);
+    add(`<div><span class="n ${who}">${p.index + 1}</span> выстрел ${WORD[dirToView(viewer, e.dir)]} — ${target ? `попал в ${pieceName(target, true)}!` : e.wall ? 'пуля попала в перегородку' : 'мимо'}</div>`);
     if (target) add(`<div class="rv">Раскрыта ${pieceName(target)}: ${reveal(target.id) === 'core' ? 'ЯДРО' : 'пустышка'}.</div>`);
   }
   // Огонь: все фишки на краю горят одновременно.
@@ -1091,7 +1236,44 @@ async function playReplay(b, screen, prev, finalState, events, viewer, my, curre
   logEl.innerHTML = lines.join('');
 }
 
-const REASON = { contest: 'клетку заняли одновременно', swap: 'фишки менялись местами', occupied: 'клетка занята', cycle: 'фишки шли по кругу', blocked: 'путь закрыт' };
+const REASON = { contest: 'клетку заняли одновременно', swap: 'фишки менялись местами', occupied: 'клетка занята', cycle: 'фишки шли по кругу', blocked: 'путь закрыт', wall: 'мешает перегородка' };
+
+// Подмена ядра: крупное «ПОДМЕНА!», звук и мерцание всех живых фишек игрока (какая стала ядром, не выдаём).
+// mine = { from, to } — своя подмена: маркер ядра перелетает со старой фишки на новую.
+async function playSwap(b, prev, e, viewer, mine) {
+  const tl = 2400;
+  const own = prev.pieces.filter((p) => p.owner === e.by && p.alive);
+  sfx.swap();
+  const word = el(`<div class="word ${e.by === viewer ? 'mine' : ''}" style="--tl:${tl}ms;animation-delay:-${tl * 0.36}ms">ПОДМЕНА!</div>`);
+  b.board.append(word);
+  const discs = own.map((p) => b.els.get(p.id)?.firstElementChild).filter(Boolean);
+  discs.forEach((d) => d.classList.add('swapflick'));
+  let marker = null;
+  if (mine) {
+    // Маркер ядра стоит в правом верхнем углу фишки.
+    const corner = (i) => {
+      const p = own.find((q) => q.index === i) || prev.pieces.find((q) => q.owner === e.by && q.index === i);
+      const c = b.center(p.r, p.c);
+      return { x: c.x + b.cell * 0.37, y: c.y - b.cell * 0.37 };
+    };
+    const from = corner(mine.from), to = corner(mine.to);
+    marker = el(`<i class="coremove" style="transform:translate(${to.x}px,${to.y}px) rotate(45deg)"></i>`);
+    b.fx.append(marker);
+    if (!REDUCED) {
+      const mid = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - b.cell * 0.6 };
+      marker.animate([
+        { transform: `translate(${from.x}px,${from.y}px) rotate(45deg) scale(1)` },
+        { transform: `translate(${from.x}px,${from.y}px) rotate(45deg) scale(1.3)`, offset: 0.25 },
+        { transform: `translate(${mid.x}px,${mid.y}px) rotate(225deg) scale(1.6)`, offset: 0.6 },
+        { transform: `translate(${to.x}px,${to.y}px) rotate(405deg) scale(1)` },
+      ], { duration: 1100, delay: 250, easing: 'ease-in-out', fill: 'backwards' });
+    }
+  }
+  await sleep(tl * 0.64 + 150);
+  word.remove();
+  marker?.remove();
+  discs.forEach((d) => d.classList.remove('swapflick'));
+}
 
 // Один выстрел: трассер, замедление, попадание, тряска, звук, надпись.
 async function playShot(b, screen, e, target, answer, viewer, speed) {
@@ -1104,16 +1286,26 @@ async function playShot(b, screen, e, target, answer, viewer, speed) {
   const c0 = b.center(e.from.r, e.from.c);
   const from = { x: c0.x + unit[0] * out, y: c0.y + unit[1] * out };
   const end = b.center(e.end.r, e.end.c);
-  // до центра цели или до края поля
+  // до центра цели, до края поля или до перегородки
   let len = Math.abs(end.x - c0.x) + Math.abs(end.y - c0.y) - out;
-  if (!hit) len += b.cell / 2;
+  if (!hit) len += b.cell / 2 + (e.wall ? 3 : 0);
   const rot = { down: 0, up: 180, left: 90, right: -90 }[vd];
   const fx = b.fx;
   const tr = el(`<div class="tracer-rot" style="--tl:${tl}ms;transform:translate(${from.x - 5}px,${from.y}px) rotate(${rot}deg);height:${len}px"><div class="tracer ${hit ? '' : 'miss'}"></div></div>`);
   fx.append(tr);
   sfx.pew();
   if (!hit) {
-    await sleep(tl);
+    if (e.wall) {
+      // Пуля в перегородку: вспышка крошек на ней и глухой удар, без тряски и надписи.
+      const hitAt = tl * 0.45;
+      await sleep(hitAt);
+      const face = { x: from.x + unit[0] * len, y: from.y + unit[1] * len };
+      const crumbs = el(`<div class="crumbs" style="left:${face.x}px;top:${face.y}px"></div>`);
+      fx.append(crumbs);
+      sfx.thud();
+      await sleep(tl - hitAt);
+      crumbs.remove();
+    } else await sleep(tl);
     tr.remove();
     return;
   }
@@ -1171,10 +1363,16 @@ async function impact(b, target, answer, viewer, tl, skip, label = answer === 'c
 const roundsWord = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'раунд' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'раунда' : 'раундов');
 
 function hotseatFinal() {
-  return { state: game.state, me: null, cores: { ...game.cores }, honesty: null, onRematch: startMatch, onMenu: showLobby };
+  const end = (pl) => R.coreAt(game.cores[pl], game.swaps[pl], Infinity);
+  const swap = (pl) => (game.swaps[pl] ? { round: game.swaps[pl].round, from: game.cores[pl], to: game.swaps[pl].core } : null);
+  return {
+    state: game.state, me: null, cores: { host: end('host'), guest: end('guest') },
+    swaps: { host: swap('host'), guest: swap('guest') }, honesty: null, onRematch: startMatch, onMenu: showLobby,
+  };
 }
 
-// info: { state, me: 'host'|'guest'|null (hotseat), cores: {host, guest} (null — не раскрыто), honesty, onRematch, onMenu }
+// info: { state, me: 'host'|'guest'|null (hotseat), cores: {host, guest} — ядра на конец партии (null — не раскрыто),
+//   swaps: {host, guest} — null | { round, from?, to? }, honesty, onRematch, onMenu }
 function showFinal(info) {
   stopTimer();
   closeSheet();
@@ -1223,6 +1421,16 @@ function showFinal(info) {
     }[reason];
   }
 
+  // Подмена ядра: была ли и в каком раунде (раунд публичный, фишки — когда владелец раскрыл их в final).
+  const swapLine = (pl) => {
+    const sw = info.swaps?.[pl] || (s.swaps?.[pl] ? { round: s.swaps[pl].round } : null);
+    if (!sw) return '';
+    const who = !me ? NAME[pl] : pl === me ? 'Ты' : 'Соперник';
+    const where = Number.isInteger(sw.from) && Number.isInteger(sw.to) ? `: с фишки ${sw.from + 1} на фишку ${sw.to + 1}` : '';
+    return `${who} подменил ядро в ${sw.round}-м раунде${where}.`;
+  };
+  const swapText = (me ? [swapLine(op), swapLine(me)] : [swapLine('host'), swapLine('guest')]).filter(Boolean).join(' ') || 'Подмены ядра не было.';
+
   const screen = el(`<section class="screen split">
     <div class="col">
     <div class="pill">партия окончена · ${rounds} ${roundsWord(rounds)}</div>
@@ -1232,6 +1440,7 @@ function showFinal(info) {
     ${me ? `<div class="row small">Фишки соперника</div><div class="reveal-row">${row(op)}</div>`
       : `<div class="row small">${NAME.host}</div><div class="reveal-row">${row('host')}</div>
          <div class="row small">${NAME.guest}</div><div class="reveal-row">${row('guest')}</div>`}
+    <p class="small">⇄ ${swapText}</p>
     </div>
     <div class="col">
     <div class="card"><div class="cardtitle">Итог для чата</div><div class="summary" id="sum">${summary}</div>
@@ -1359,12 +1568,27 @@ function showCheater(d) {
   document.body.classList.add('cheat');
   const quote = (a) => (a === 'core' ? '«ядро»' : '«пустышка»');
   let text = '', rows = '';
+  const swapNo = (i) => (Number.isInteger(i) ? `фишку ${i + 1}` : 'фишку');
   if (d.kind === 'answer') {
     const how = d.lie.kind === 'scan' ? 'на твой скан' : 'после попадания';
-    text = `Соперник ответил ${quote(d.lie.answer)} о фишке ${d.lie.index + 1} ${how}, но раскрытое ядро показывает, что это было ${d.lie.expected === 'core' ? 'ядро' : 'пустышка'}.`;
+    const afterSwap = d.swap && Number.isInteger(d.lie.round) && d.lie.round >= d.swap.round;
+    text = `Соперник ответил ${quote(d.lie.answer)} о фишке ${d.lie.index + 1} ${how}, но раскрытое ядро${afterSwap ? ' (с учётом его подмены)' : ''} показывает, что это было ${d.lie.expected === 'core' ? 'ядро' : 'пустышка'}.`;
     rows = `<div class="small2">Коммит на старте</div><div class="mono">${groupHash(d.commit || '')}</div>
       <div class="small2">sha256(ядро = ${d.core + 1}, соль)</div><div class="mono">${groupHash(d.commit || '')} <span class="okc">✓</span></div>
-      <hr><div class="small2">Ответ о фишке ${d.lie.index + 1}</div><div class="bad">${quote(d.lie.answer)} ✕</div>`;
+      ${d.swap ? `<div class="small2">Подмена в раунде ${d.swap.round}</div><div class="mono">ядро → фишка ${d.swap.core + 1} <span class="okc">✓</span></div>` : ''}
+      <hr><div class="small2">Ответ о фишке ${d.lie.index + 1}${Number.isInteger(d.lie.round) ? ` в раунде ${d.lie.round}` : ''}</div><div class="bad">${quote(d.lie.answer)} ✕</div>`;
+  } else if (d.kind?.startsWith('swap-')) {
+    text = {
+      'swap-missing': `В раунде ${d.round} соперник сделал подмену ядра, но в конце партии не раскрыл, на какую фишку.`,
+      'swap-extra': 'Соперник прислал подмену ядра, которой не было в его приказах.',
+      'swap-commit': `Подмена ядра, которую соперник раскрыл в конце, не совпала с отпечатком из его приказов раунда ${d.round}.`,
+      'swap-round': `Соперник указал для подмены не тот раунд: в его приказах она была в раунде ${d.round}.`,
+      'swap-same': `В раунде ${d.round} соперник «подменил» ядро на ту же ${swapNo(d.index)}.`,
+      'swap-dead': `В раунде ${d.round} соперник подменил ядро на ${swapNo(d.index)}, которая к тому времени уже была сбита.`,
+      'swap-bad': 'Соперник раскрыл подмену ядра на фишку, которой нет.',
+    }[d.kind] || 'Подмена ядра соперника не прошла проверку.';
+    rows = `<div class="small2">Коммит на старте</div><div class="mono">${groupHash(d.commit || '')} <span class="okc">✓</span></div>
+      <hr><div class="small2">Подмена ядра${d.round ? ` в раунде ${d.round}` : ''}</div><div class="bad">не сошлась ✕</div>`;
   } else if (d.kind === 'commit') {
     text = `Соперник назвал ядром фишку ${Number(d.core) + 1}, но это не совпадает с отпечатком, который он прислал на старте.`;
     rows = `<div class="small2">Коммит на старте</div><div class="mono">${groupHash(d.commit || '')}</div>
@@ -1440,13 +1664,13 @@ const netUI = {
       'Попробовать снова', () => location.reload(), { text: 'или создать свою комнату →', action: newRoom });
   },
   roomFull() { showNotice('Комната занята', 'В этой партии уже двое игроков. Создай свою комнату.', 'Новая комната', newRoom); },
-  corePick() {
+  corePick(walls = []) {
     closeSheet();
     document.body.classList.remove('cheat');
     planning = null;
     finalInfo = null;
     NAMING = match.role;
-    showCorePick(match.role, (core, salt) => match.chooseCore(core, salt), 'С');
+    showCorePick(match.role, (core, salt) => match.chooseCore(core, salt), 'С', walls);
   },
   waitCore(opponentDone) { showWaiting('Ядро выбрано', opponentDone ? 'Начинаем…' : 'Соперник выбирает ядро…'); },
   opponentCore() {
@@ -1460,11 +1684,11 @@ const netUI = {
   timeUp() {
     if (planning) { planning.lock('Время вышло'); toast('Время вышло: фишки стоят, действия нет'); }
   },
-  replay({ prev, events, view }) {
+  replay({ prev, events, view, mySwap }) {
     planning = null;
     const over = view.phase === 'over';
     showReplay({
-      viewer: match.role, prev, state: view, events,
+      viewer: match.role, prev, state: view, events, mySwap,
       nextLabel: over ? 'Итог →' : `Раунд ${view.round} →`,
       onNext: (btn) => {
         if (!over) { btn.disabled = true; btn.textContent = 'Ждём соперника…'; }

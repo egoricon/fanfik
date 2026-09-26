@@ -3,14 +3,15 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createGame, resolveRound, resolveMoves, applyReveals, applyScanAnswer, answerFor,
-  normalizeOrders, viewFor, findLies, answersOf, forfeit, isEdge, START, SIZE,
+  normalizeOrders, viewFor, findLies, answersOf, forfeit, isEdge, START, SIZE, WALL_LAYOUTS,
+  coreAt, checkSwap,
 } from './rules.js';
 import { makeSalt, commit, verify } from './crypto.js';
 
 // Партия с заданными позициями: layout { h0: [r, c], g1: [r, c], ... }.
 // Фишки, не названные в layout, убираются с поля (считаются уничтоженными пустышками).
-function game(layout, { round = 1, hostCore = 0, guestCore = 0 } = {}) {
-  const s = createGame({ hostCore, guestCore });
+function game(layout, { round = 1, hostCore = 0, guestCore = 0, walls = [] } = {}) {
+  const s = createGame({ hostCore, guestCore, walls: walls.map(([r, c, side]) => ({ r, c, side })) });
   s.round = round;
   for (const p of s.pieces) {
     if (layout[p.id]) [p.r, p.c] = layout[p.id];
@@ -314,6 +315,206 @@ describe('скан (правило 3)', () => {
     assert.equal(viewFor(state, 'guest').private.host, undefined);
     // Второй скан отбрасывается.
     assert.equal(normalizeOrders(state, 'host', orders([], { type: 'scan', target: 0 })).action, null);
+  });
+
+  test('оба сканируют в одном раунде: каждый получает свой ответ', () => {
+    const s = game({ h0: [4, 0], h1: [4, 1], g0: [0, 4], g1: [0, 3] }, { hostCore: 1, guestCore: 0 });
+    let { state } = resolveRound(s, {
+      host: orders([], { type: 'scan', target: 1 }),
+      guest: orders([], { type: 'scan', target: 1 }),
+    });
+    assert.deepEqual(state.pendingScans.map((x) => x.by), ['host', 'guest']);
+    state = applyScanAnswer(state, 'core', 'guest');
+    assert.equal(state.phase, 'reveal', 'раунд ждёт второй ответ');
+    state = applyScanAnswer(state, 'dummy', 'host');
+    assert.equal(state.phase, 'planning');
+    assert.deepEqual(state.private.host.scans, [{ targetId: 'g1', answer: 'dummy', round: 1 }]);
+    assert.deepEqual(state.private.guest.scans, [{ targetId: 'h1', answer: 'core', round: 1 }]);
+  });
+});
+
+describe('перегородки', () => {
+  // Перегородка { r, c, side }: 'h' — между (r,c) и (r+1,c), 'v' — между (r,c) и (r,c+1).
+  test('шаг через перегородку → стоит, причина wall', () => {
+    const s = game({ h0: [2, 2] }, { walls: [[1, 2, 'h']] });
+    const { state, events } = resolveRound(s, { host: orders(['up']) });
+    assert.deepEqual(pos(state, 'h0'), [2, 2]);
+    const m = events.find((e) => e.type === 'move');
+    assert.equal(m.ok, false);
+    assert.equal(m.reason, 'wall');
+  });
+
+  test('перегородка мешает в обе стороны, вдоль неё шагать можно', () => {
+    const s = game({ h0: [1, 2], h1: [2, 3] }, { walls: [[1, 2, 'h'], [2, 2, 'v']] });
+    const { state } = resolveRound(s, { host: orders(['down', 'left']) });
+    assert.deepEqual(pos(state, 'h0'), [1, 2], 'вниз через горизонтальную — нельзя');
+    assert.deepEqual(pos(state, 'h1'), [2, 3], 'влево через вертикальную — нельзя');
+    const t = resolveRound(game({ h0: [1, 2] }, { walls: [[1, 2, 'h']] }), { host: orders(['right']) }).state;
+    assert.deepEqual(pos(t, 'h0'), [1, 3], 'вдоль перегородки — можно');
+  });
+
+  test('упёршийся в перегородку не спорит за клетку: другой проходит в неё', () => {
+    // h0 из (3,2) упирается вверх; h1 из (2,1) спокойно шагает в (2,2), куда целился h0.
+    const s = game({ h0: [3, 2], h1: [2, 1] }, { walls: [[2, 2, 'h']] });
+    const { state, events } = resolveRound(s, { host: orders(['up', 'right']) });
+    assert.deepEqual(pos(state, 'h0'), [3, 2]);
+    assert.deepEqual(pos(state, 'h1'), [2, 2]);
+    assert.equal(events.find((e) => e.id === 'h1').ok, true);
+  });
+
+  test('фишка за перегородкой: пуля останавливается перед ней', () => {
+    const s = game({ h0: [4, 1], g0: [0, 1] }, { walls: [[1, 1, 'h']] });
+    const { state, events } = resolveRound(s, { host: orders([], { type: 'shot', piece: 0, dir: 'up' }) });
+    const shot = events.find((e) => e.type === 'shot');
+    assert.equal(shot.hitId, null);
+    assert.deepEqual(shot.end, { r: 2, c: 1 });
+    assert.deepEqual(shot.wall, { r: 1, c: 1, side: 'h' });
+    assert.ok(alive(state, 'g0'));
+  });
+
+  test('перегородка вплотную: end — клетка стрелка', () => {
+    const s = game({ h0: [2, 2], g0: [2, 4] }, { walls: [[2, 2, 'v']] });
+    const { events } = resolveRound(s, { host: orders([], { type: 'shot', piece: 0, dir: 'right' }) });
+    const shot = events.find((e) => e.type === 'shot');
+    assert.deepEqual(shot.end, { r: 2, c: 2 });
+    assert.deepEqual(shot.wall, { r: 2, c: 2, side: 'v' });
+  });
+
+  test('фишка перед перегородкой поражается как обычно', () => {
+    const s = game({ h0: [4, 1], g0: [2, 1] }, { walls: [[1, 1, 'h']] });
+    const { state, events } = resolveRound(s, { host: orders([], { type: 'shot', piece: 0, dir: 'up' }) });
+    assert.ok(!alive(state, 'g0'));
+    assert.equal(events.find((e) => e.type === 'shot').wall, null);
+  });
+
+  test('выстрел вдоль перегородки летит как раньше', () => {
+    const s = game({ h0: [1, 0], g0: [1, 4] }, { walls: [[1, 1, 'h'], [1, 2, 'h']] });
+    const { state } = resolveRound(s, { host: orders([], { type: 'shot', piece: 0, dir: 'right' }) });
+    assert.ok(!alive(state, 'g0'));
+  });
+
+  test('перегородки лежат в состоянии и видны обоим', () => {
+    const s = createGame({ walls: WALL_LAYOUTS[1] });
+    assert.deepEqual(viewFor(s, 'guest').walls, WALL_LAYOUTS[1]);
+    assert.deepEqual(createGame().walls, []);
+  });
+
+  test('все раскладки: 4 отрезка внутри поля, точечно-симметричны', () => {
+    assert.equal(WALL_LAYOUTS.length, 4);
+    const key = (w) => `${w.r},${w.c},${w.side}`;
+    // Поворот на 180°: 'h' (r,c) → (3-r, 4-c), 'v' (r,c) → (4-r, 3-c).
+    const rot = (w) => (w.side === 'h' ? { r: SIZE - 2 - w.r, c: SIZE - 1 - w.c, side: 'h' } : { r: SIZE - 1 - w.r, c: SIZE - 2 - w.c, side: 'v' });
+    for (const layout of WALL_LAYOUTS) {
+      assert.equal(layout.length, 4);
+      const set = new Set(layout.map(key));
+      for (const w of layout) {
+        assert.ok(set.has(key(rot(w))), 'симметричный отрезок есть: ' + key(w));
+        assert.ok(w.side === 'h' ? w.r >= 0 && w.r < SIZE - 1 : w.c >= 0 && w.c < SIZE - 1);
+      }
+    }
+  });
+});
+
+describe('подмена ядра', () => {
+  const H = 'a'.repeat(64); // отпечаток цели (в тестах правил содержимое не важно)
+  const swapOrder = (hash = H) => orders([], { type: 'swap', hash });
+
+  test('подмена принимается один раз, повторная — «нет действия»', () => {
+    const s = createGame({ hostCore: 0, guestCore: 0 });
+    const { state, events } = resolveRound(s, { host: swapOrder() });
+    assert.deepEqual(events[0], { type: 'swap', by: 'host', round: 1 });
+    assert.equal(state.swapUsed.host, true);
+    assert.deepEqual(state.swaps.host, { round: 1, hash: H });
+    assert.equal(normalizeOrders(state, 'host', swapOrder()).action, null);
+    const next = resolveRound(state, { host: swapOrder('b'.repeat(64)) });
+    assert.ok(!next.events.some((e) => e.type === 'swap'));
+    assert.deepEqual(next.state.swaps.host, { round: 1, hash: H }, 'первая подмена не перезаписана');
+  });
+
+  test('подмена занимает слот действия: в этом раунде нет выстрела', () => {
+    const s = game({ h0: [4, 2], h1: [4, 1], g0: [0, 2] });
+    const { events } = resolveRound(s, { host: orders([], { type: 'swap', hash: H, piece: 0, dir: 'up' }) });
+    assert.ok(!events.some((e) => e.type === 'shot'));
+    assert.ok(events.some((e) => e.type === 'swap'));
+  });
+
+  test('подмена идёт первой в раунде, до движений', () => {
+    const s = game({ h0: [3, 2], h1: [4, 1] });
+    const { events } = resolveRound(s, { host: orders(['up'], { type: 'swap', hash: H }) });
+    assert.equal(events[0].type, 'swap');
+    assert.equal(events[1].type, 'move');
+  });
+
+  test('мусорный отпечаток и одна живая фишка → подмены нет', () => {
+    const s = game({ h0: [4, 2], h1: [4, 1] });
+    assert.equal(normalizeOrders(s, 'host', swapOrder('xyz')).action, null);
+    assert.equal(normalizeOrders(s, 'host', swapOrder(H.toUpperCase())).action, null);
+    const lone = game({ h0: [4, 2] });
+    assert.equal(normalizeOrders(lone, 'host', swapOrder()).action, null);
+  });
+
+  test('отпечаток подмены виден сопернику, цели в состоянии нет', () => {
+    const { state } = resolveRound(createGame({ hostCore: 0 }), { host: swapOrder() });
+    const v = viewFor(state, 'guest');
+    assert.deepEqual(v.swaps.host, { round: 1, hash: H });
+  });
+
+  test('coreAt: до раунда подмены — старое ядро, начиная с него — новое', () => {
+    const swap = { core: 2, round: 4 };
+    assert.equal(coreAt(0, swap, 3), 0);
+    assert.equal(coreAt(0, swap, 4), 2);
+    assert.equal(coreAt(0, swap, 9), 2);
+    assert.equal(coreAt(0, null, 9), 0);
+    // Ядро на конец партии (финал, эмодзи-итог) и неизвестный раунд.
+    assert.equal(coreAt(0, swap, Infinity), 2);
+    assert.equal(coreAt(0, swap, null), 0);
+  });
+
+  test('findLies: «ядро» у старой фишки до подмены честно, после — ложь', () => {
+    const swap = { core: 1, round: 5 };
+    assert.deepEqual(findLies(0, [{ index: 0, answer: 'core', round: 3 }], swap), []);
+    assert.deepEqual(findLies(0, [{ index: 1, answer: 'dummy', round: 3 }], swap), []);
+    const lie = findLies(0, [{ index: 0, answer: 'core', round: 5 }], swap);
+    assert.equal(lie.length, 1);
+    assert.equal(lie[0].expected, 'dummy');
+    assert.equal(findLies(0, [{ index: 1, answer: 'dummy', round: 6 }], swap).length, 1);
+    assert.deepEqual(findLies(0, [{ index: 1, answer: 'core', round: 6 }], swap), []);
+  });
+
+  test('раскрытия запоминают раунд, answersOf отдаёт его', () => {
+    let s = game({ h0: [4, 2], g0: [2, 2], g1: [0, 1] }, { round: 3, guestCore: 1 });
+    ({ state: s } = resolveRound(s, { host: orders([], { type: 'shot', piece: 0, dir: 'up' }) }));
+    s = revealAll(s);
+    assert.equal(s.revealRound.g0, 3);
+    const a = answersOf(s, 'guest', 'host').find((x) => x.index === 0);
+    assert.deepEqual(a, { index: 0, answer: 'dummy', kind: 'hit', round: 3 });
+  });
+
+  // Партия, где гость подменил ядро в раунде 2; g2 сбита в раунде 1.
+  function swapped() {
+    let s = game({ h0: [4, 0], g0: [0, 4], g1: [0, 3], g2: [2, 2] }, { guestCore: 0 });
+    ({ state: s } = resolveRound(s, { host: orders([], null) }));
+    s.pieces.find((p) => p.id === 'g2').alive = false;
+    s.reveals.g2 = 'dummy';
+    s.revealRound.g2 = 1;
+    ({ state: s } = resolveRound(s, { guest: swapOrder() }));
+    return s;
+  }
+
+  test('checkSwap: честная подмена на живую фишку проходит', () => {
+    assert.equal(checkSwap(swapped(), 'guest', 0, { core: 1, salt: 's', round: 2 }), null);
+    assert.equal(checkSwap(createGame(), 'guest', 0, null), null);
+  });
+
+  test('checkSwap: подмена на сбитую фишку или на ту же ловится', () => {
+    assert.equal(checkSwap(swapped(), 'guest', 0, { core: 2, salt: 's', round: 2 }).kind, 'swap-dead');
+    assert.equal(checkSwap(swapped(), 'guest', 0, { core: 0, salt: 's', round: 2 }).kind, 'swap-same');
+  });
+
+  test('checkSwap: подмена в приказах есть, а в final нет (и наоборот) — ловится', () => {
+    assert.equal(checkSwap(swapped(), 'guest', 0, null).kind, 'swap-missing');
+    assert.equal(checkSwap(createGame(), 'guest', 0, { core: 1, salt: 's', round: 2 }).kind, 'swap-extra');
+    assert.equal(checkSwap(swapped(), 'guest', 0, { core: 1, salt: 's', round: 3 }).kind, 'swap-round');
   });
 });
 
