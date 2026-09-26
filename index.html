@@ -1304,7 +1304,7 @@ function showLobby() {
         <div class="linkbox mono" id="link">Создаём комнату…</div>
         <button class="btn main" style="width:100%;flex:0 0 60px" id="copy" disabled>Скопировать</button>
       </div>
-      <p class="small">Отправь ссылку другу. Не закрывай вкладку: ты хост и судья этой партии.</p>
+      <p class="small">Отправь ссылку другу и сразу вернись на эту страницу: пока она свёрнута, друг не сможет войти. Ты хост и судья этой партии.</p>
       <button class="textbtn" id="hot">или сыграть вдвоём на одном экране →</button>
     </div>
   </section>`);
@@ -1319,18 +1319,27 @@ function showLobby() {
 }
 
 // ---------- простые экраны ----------
-function showNotice(title, text, button, action) {
+// second: необязательная вторая кнопка-ссылка { text, action }.
+function showNotice(title, text, button, action, second = null) {
   stopTimer();
   closeSheet();
-  app.replaceChildren(el(`<section class="screen pass">
+  const screen = el(`<section class="screen pass">
     <h2 class="h1">${title}</h2>
     <p class="sub" style="max-width:300px">${text}</p>
     ${button ? '<div style="height:16px"></div><button class="btn main" style="flex:0 0 60px;width:100%" id="go"></button>' : ''}
-  </section>`));
+    ${second ? '<button class="textbtn" id="go2"></button>' : ''}
+  </section>`);
+  app.replaceChildren(screen);
   if (button) {
-    const b = document.getElementById('go');
+    const b = screen.querySelector('#go');
     b.textContent = button;
     b.onclick = action;
+    setKeys(screen, (ev) => (ev.code === 'Enter' || ev.code === 'NumpadEnter' ? b.click() : false));
+  }
+  if (second) {
+    const b2 = screen.querySelector('#go2');
+    b2.textContent = second.text;
+    b2.onclick = second.action;
   }
 }
 
@@ -1339,6 +1348,7 @@ function showWaiting(title, text) {
   app.replaceChildren(el(`<section class="screen pass">
     <div class="pill">${title}</div>
     <div class="row" style="justify-content:center"><i class="dot shot"></i><b style="font-size:20px;font-weight:800" id="wtext">${text}</b></div>
+    <p class="small" id="wnote" style="max-width:300px"></p>
   </section>`));
 }
 
@@ -1420,7 +1430,15 @@ const netUI = {
     copy.onclick = () => copyText(link, copy, 'Скопировать');
   },
   fatal(text) { showNotice('Не получилось', text, 'Обновить', () => location.reload()); },
-  roomNotFound() { showNotice('Комната не найдена', 'Хост закрыл вкладку или ссылка устарела. Создай свою комнату и отправь ссылку другу.', 'Новая комната', newRoom); },
+  // Гость долго не находит хоста: чаще всего хост свернул страницу, пока отправлял ссылку.
+  roomSlow() {
+    const n = document.getElementById('wnote');
+    if (n) n.textContent = 'Всё ещё ищем. Попроси друга вернуться на страницу игры: пока она свёрнута, войти в комнату нельзя.';
+  },
+  roomNotFound() {
+    showNotice('Комната не найдена', 'Хост закрыл страницу игры или ссылка устарела. Попроси друга открыть игру и попробуй ещё раз.',
+      'Попробовать снова', () => location.reload(), { text: 'или создать свою комнату →', action: newRoom });
+  },
   roomFull() { showNotice('Комната занята', 'В этой партии уже двое игроков. Создай свою комнату.', 'Новая комната', newRoom); },
   corePick() {
     closeSheet();

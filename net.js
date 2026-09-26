@@ -15,7 +15,23 @@ export const TRYSTERO_URLS = [
   `https://esm.sh/trystero@${TRYSTERO_VERSION}`,
 ];
 const APP_ID = 'dvoyniki-egoricon-v1';
-const ROOM_WAIT_MS = 20000; // гость не нашёл хоста за это время — «комната не найдена»
+// Nostr-релеи для знакомства игроков. По умолчанию Trystero берёт 5 из своих 28 по appId,
+// и для нашего appId это мелкие серверы (среди них тестовый и домашний). Берём 8 покрупнее
+// из того же списка Trystero: игроку хватит одного общего живого релея.
+const RELAYS = [
+  'wss://nos.lol',
+  'wss://relay.mostr.pub',
+  'wss://purplerelay.com',
+  'wss://nostr-01.yakihonne.com',
+  'wss://relay.sigit.io',
+  'wss://yabu.me/v2',
+  'wss://relay.mostro.network',
+  'wss://nostr.data.haus',
+];
+// Гость ищет хоста. Частая причина задержки — хост свернул вкладку, чтобы отправить ссылку
+// (на телефоне браузер тогда засыпает). Поэтому сначала подсказка, и только потом «не найдена».
+const ROOM_SLOW_MS = 15000; // хоста всё ещё нет — подсказка «пусть хост вернётся на страницу»
+const ROOM_WAIT_MS = 90000; // хоста так и нет — «комната не найдена»
 
 const PING_MS = 2000; // пульс соединения
 const DEAD_MS = 7000; // тишина дольше — соперник отключился
@@ -177,7 +193,7 @@ class Transport extends Emitter {
     super();
     this.lib = lib;
     this.conns = new Map();
-    this.room = lib.joinRoom({ appId: APP_ID }, roomId);
+    this.room = lib.joinRoom({ appId: APP_ID, relayConfig: { urls: RELAYS } }, roomId);
     this.action = this.room.makeAction('m');
     this.room.onPeerJoin = (pid) => {
       const c = this.conn(pid);
@@ -644,6 +660,7 @@ export function createGuest(ui, roomId) {
     });
     t.on('wake', () => { if (hostConn && !link.alive) hello(hostConn); });
   });
+  setTimeout(() => { if (!hostConn) ui.roomSlow?.(); }, ROOM_SLOW_MS);
   setTimeout(() => { if (!hostConn) ui.roomNotFound(); }, ROOM_WAIT_MS);
   // Пока связи нет — периодически напоминаем хосту о себе.
   const redial = setInterval(() => {
