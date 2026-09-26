@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#6C4CFF">
 <title>Двойники</title>
+<!-- Установка на главный экран: манифест, иконки, окно без адресной строки -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Двойники">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Пошаговая дуэль один на один по ссылке: три фишки, одна из них — ядро. Найди ядро друга раньше, чем он найдёт твоё.">
 <!-- Превью ссылки в мессенджерах -->
 <meta property="og:title" content="Двойники — дуэль на одну минуту">
@@ -12,7 +20,12 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Двойники">
 <meta property="og:locale" content="ru_RU">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://egoricon.github.io/fanfik/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Двойники: иконка с двумя фишками и надпись «Дуэль на телефоне»">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://egoricon.github.io/fanfik/og-image.png">
 <meta name="twitter:title" content="Двойники — дуэль на одну минуту">
 <meta name="twitter:description" content="Три фишки, одна из них — ядро. Найди ядро друга раньше, чем он найдёт твоё.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -456,6 +469,16 @@ body.cheat .corner .icbtn > span { background: rgba(42,27,107,.2); }
 .toggle .arr { flex: none; font-size: 20px; font-weight: 900; color: var(--bg); }
 .toggle.go:disabled { color: var(--muted); }
 .toggle.go:disabled .arr { opacity: .35; }
+/* Нет интернета: карточка в лобби вместо ссылки на комнату */
+.offcard p { margin: 0 0 14px; font-size: 15px; line-height: 1.4; color: var(--ink); }
+/* Установка на iPhone: три шага с картинками */
+.ihow { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ihow li { display: flex; align-items: center; gap: 12px; background: var(--cell); border-radius: 16px; padding: 10px 12px; font-size: 15px; line-height: 1.35; color: var(--ink); }
+.ihow b { font-weight: 800; }
+.ihow .ico { flex: none; width: 44px; height: 44px; border-radius: 12px; background: #fff; color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 rgba(42,27,107,.12); }
+.ihow .ico.blue { color: #0A84FF; }
+.ihow .ico svg { width: 26px; height: 26px; }
+.ihow .ico img { width: 44px; height: 44px; border-radius: 11px; }
 /* Конец обучения */
 .tutend .rcard p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--ink); }
 .actions.stack { flex-direction: column; }
@@ -945,8 +968,10 @@ function openSettings() {
   const sheet = openPanel('settings', `<div class="sh-head" data-drag><b>Настройки</b><button class="icbtn" data-close data-focus aria-label="Закрыть"><span>✕</span></button></div>
     ${rows.map((x) => `<button class="toggle" role="switch" data-k="${x.k}" aria-checked="${!x.off && !!settings[x.k]}"${x.off ? ' disabled' : ''}>
       <span>${x.name}${x.note ? `<small>${x.note}</small>` : ''}</span><i></i></button>`).join('')}
-    <button class="toggle go" id="tutor"${learn ? '' : ' disabled'}><span>${progress.tutorial ? 'Показать обучение снова' : 'Пройти обучение'}<small>${learnNote}</small></span><b class="arr" aria-hidden="true">→</b></button>`, { label: 'Настройки' });
+    <button class="toggle go" id="tutor"${learn ? '' : ' disabled'}><span>${progress.tutorial ? 'Показать обучение снова' : 'Пройти обучение'}<small>${learnNote}</small></span><b class="arr" aria-hidden="true">→</b></button>
+    ${canInstall() ? '<button class="toggle go" id="install"><span>Установить на главный экран<small>Своя иконка, открывается без адресной строки</small></span><b class="arr" aria-hidden="true">→</b></button>' : ''}`, { label: 'Настройки' });
   sheet.querySelector('#tutor').onclick = startTutor;
+  sheet.querySelector('#install')?.addEventListener('click', install);
   sheet.querySelectorAll('.toggle[data-k]:not(:disabled)').forEach((t) => (t.onclick = () => {
     const k = t.dataset.k;
     settings[k] = !settings[k];
@@ -955,6 +980,36 @@ function openSettings() {
     if (k === 'sound' && settings.sound) sfx.tap();
     if (k === 'vibro') buzz(30);
   }));
+}
+
+// ---------- установка на главный экран ----------
+// Android и ПК: браузер присылает beforeinstallprompt — его окно открывается из настроек.
+// iPhone и iPad: такого события нет, в настройках — подсказка «Поделиться → На экран „Домой“».
+// Игра уже открыта с главного экрана — пункта нет.
+let installEvt = null;
+addEventListener('beforeinstallprompt', (ev) => { ev.preventDefault(); installEvt = ev; });
+addEventListener('appinstalled', () => { installEvt = null; });
+const STANDALONE = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const canInstall = () => !STANDALONE && (!!installEvt || IOS);
+function install() {
+  sfx.tap();
+  if (installEvt) {
+    const ev = installEvt;
+    installEvt = null; // одно событие — одно окно; отказался — браузер пришлёт новое позже
+    closePanel();
+    ev.prompt().catch(() => {});
+    return;
+  }
+  const share = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M7 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1"/></svg>';
+  const add = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg>';
+  openPanel('install', `<div class="sh-head" data-drag><b>На экран «Домой»</b><button class="icbtn" data-close data-focus aria-label="Закрыть"><span>✕</span></button></div>
+    <ol class="ihow">
+      <li><span class="ico blue">${share}</span><span>Нажми <b>«Поделиться»</b> в Safari. Если такой кнопки нет на панели, сначала нажми <b>«•••»</b></span></li>
+      <li><span class="ico">${add}</span><span>Выбери <b>«На экран „Домой“»</b></span></li>
+      <li><span class="ico"><img src="apple-touch-icon.png" alt=""></span><span>Нажми <b>«Добавить»</b>: игра появится среди приложений и откроется без адресной строки</span></li>
+    </ol>
+    <p>Если игра открыта внутри Telegram, сначала открой её в Safari.</p>`, { label: 'На экран «Домой»' });
 }
 
 // ---------- правила «Как играть» ----------
@@ -2521,6 +2576,25 @@ let planning = null;
 let lobbyLink = null;
 let finalInfo = null;
 
+// Без интернета сетевой партии не будет: navigator.onLine === false надёжно значит «сети нет»
+// (true ещё не значит, что она есть, — тогда работает обычный путь с ошибками сети).
+const isOffline = () => navigator.onLine === false;
+function showOfflineGuest() {
+  showNotice('Нет интернета', 'Чтобы войти в комнату друга, нужен интернет. Пока можно сыграть вдвоём на одном экране.',
+    'Попробовать снова', () => location.reload(),
+    { text: 'или сыграть на одном экране →', action: () => { history.replaceState(null, '', location.pathname); playHotseat(); } });
+  app.firstElementChild.classList.add('offguest');
+}
+// Библиотеки и шрифты, загруженные раньше, чем воркер взял страницу под себя (самый первый заход), —
+// воркеру в кэш: в следующий раз сеть для них не понадобится.
+const CDN_URL = /^https:\/\/(cdn\.jsdelivr\.net\/npm\/|esm\.sh\/|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
+function rememberCdn() {
+  const sw = navigator.serviceWorker?.controller;
+  if (!sw) return;
+  const urls = performance.getEntriesByType('resource').map((e) => e.name).filter((u) => CDN_URL.test(u));
+  if (urls.length) sw.postMessage({ cache: urls });
+}
+
 // Новая комната: партия уже не идёт (без вопроса браузера), запись старой комнаты в истории заменяем.
 const newRoom = () => {
   nav.leaving = true;
@@ -2535,7 +2609,8 @@ function showLobby() {
   document.body.classList.remove('cheat');
   setPlaying(null);
   NAMING = 'host';
-  if (!match) match = createHost(netUI);
+  if (!match && !isOffline()) match = createHost(netUI);
+  const off = !match; // нет интернета: комнату создадим, когда он появится
   const chips = (cls, base) => [0, 1, 2].map((i) => `<div class="chip ${cls}" style="animation-delay:${base + i * 0.3}s"></div>`).join('');
   // Обучение: новичку при первом заходе — плашка «Впервые?» с крестиком, потом — просто кнопка.
   const fresh = !progress.tutorial && progress.games === 0 && firstTime('tutor');
@@ -2551,7 +2626,12 @@ function showLobby() {
         <button class="icbtn" id="tbx" aria-label="Скрыть"><span>✕</span></button></div>` : learnBtn}
     </div>
     <div class="grow"></div>
-    <div class="col">
+    ${off ? `<div class="col">
+      <div class="row"><i class="dot op"></i><b style="font-size:20px;font-weight:800">Нет интернета</b></div>
+      <div class="card offcard"><p>Сыграть с другом по ссылке пока не получится. Можно сыграть вдвоём на одном экране или пройти обучение.</p>
+        <button class="btn main" style="width:100%;flex:0 0 60px" id="hot">Играть на одном экране</button></div>
+      <p class="small">Как только интернет вернётся, здесь появится ссылка для друга.</p>
+    </div>` : `<div class="col">
       <div class="row"><i class="dot shot"></i><b style="font-size:20px;font-weight:800">Ждём соперника…</b></div>
       <div class="card">
         <div class="cardtitle">Ссылка на комнату</div>
@@ -2561,7 +2641,7 @@ function showLobby() {
       </div>
       <p class="small">Отправь ссылку другу и сразу вернись на эту страницу: пока она свёрнута, друг не сможет войти. Ты хост и судья этой партии.</p>
       <button class="textbtn" id="hot">или сыграть вдвоём на одном экране →</button>
-    </div>
+    </div>`}
   </section>`);
   mount(screen);
   screen.querySelector('#hot').onclick = playHotseat;
@@ -2727,6 +2807,7 @@ function closeSheet() { closePanel('disconnect', 'confirm'); }
 const netUI = {
   lobby(link) {
     lobbyLink = link;
+    rememberCdn();
     const box = document.getElementById('link');
     const copy = document.getElementById('copy');
     if (!box || !copy) return;
@@ -2749,6 +2830,15 @@ const netUI = {
   fatal(text) {
     // Обучение идёт без сети: не прерываем его, комнату создадим заново при возврате в лобби.
     if (tutor) { match?.leave(); match = null; lobbyLink = null; return; }
+    // Нет интернета: вместо «Не получилось» — игра на одном экране (хосту — лобби без ссылки).
+    if (isOffline()) {
+      const guest = match?.role === 'guest';
+      match?.leave();
+      match = null;
+      lobbyLink = null;
+      if (guest) showOfflineGuest(); else showLobby();
+      return;
+    }
     showNotice('Не получилось', text, 'Обновить', () => location.reload());
   },
   // Гость долго не находит хоста: чаще всего хост свернул страницу, пока отправлял ссылку.
@@ -2769,6 +2859,7 @@ const netUI = {
     // Хост проходил обучение, пока ждал: друг пришёл — начинаем партию.
     if (leaveTutor()) toast('Друг в комнате! Обучение можно пройти потом, из настроек', 3200);
     netStarted = true;
+    rememberCdn();
     closeSheet();
     setPlaying('net');
     countGame();
@@ -2833,11 +2924,28 @@ const netUI = {
 const room = roomFromUrl();
 if (room) {
   NAMING = 'guest';
-  if (progress.games > 0 || progress.tutorial) showWaiting('Подключение', 'Ищем комнату соперника…');
-  else showInvite();
-  match = createGuest(netUI, room);
+  if (isOffline()) showOfflineGuest();
+  else {
+    if (progress.games > 0 || progress.tutorial) showWaiting('Подключение', 'Ищем комнату соперника…');
+    else showInvite();
+    match = createGuest(netUI, room);
+  }
 } else {
   showLobby();
+}
+// Интернет вернулся: лобби без ссылки создаёт комнату, гость снова ищет комнату друга.
+addEventListener('online', () => {
+  if (app.querySelector('.offcard')) showLobby();
+  else if (app.querySelector('.offguest')) location.reload();
+});
+// Файлы игры — в кэш сервис-воркера (sw.js): с главного экрана и без сети открываются
+// игра на одном экране и обучение.
+// Регистрируем после загрузки страницы, чтобы кэширование не отнимало сеть у первого экрана.
+if ('serviceWorker' in navigator && isSecureContext) {
+  const register = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (document.readyState === 'complete') register();
+  else addEventListener('load', register, { once: true });
+  navigator.serviceWorker.addEventListener('controllerchange', rememberCdn);
 }
 </script>
 </body>
